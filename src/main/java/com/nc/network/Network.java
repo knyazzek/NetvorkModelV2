@@ -8,9 +8,11 @@ import java.util.List;
 import java.util.Map;
 
 public class Network {
+    public String name;
     private Map<Integer, IPathElement> pathElements;
 
-    public Network() {
+    public Network(String name) {
+        this.name = name;
         this.pathElements = new HashMap<>();
     }
 

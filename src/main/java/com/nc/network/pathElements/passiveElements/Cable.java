@@ -19,7 +19,6 @@ public class Cable extends PassiveElement {
     public void addConnection(IPathElement connection) {
         if (getConnections().size() < super.MAX_NUM_OF_CONNECTIONS) {
             super.addConnection(connection);
-
         }
     }
 
