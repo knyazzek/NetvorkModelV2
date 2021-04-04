@@ -3,10 +3,25 @@ package com.nc.network.pathElements.activeElements;
 import com.nc.IpAddress;
 
 public class PC extends ActiveElement{
+    private static final long serialVersionUID = 2L;
 
-    public PC(int id, IpAddress ipAddress, int timeDelay, int costs, int MAX_NUM_OF_CONNECTIONS) {
-        super(id, ipAddress, timeDelay, costs, MAX_NUM_OF_CONNECTIONS);
+    public PC() {}
+
+    public PC(IpAddress ipAddress, int timeDelay, int costs, int maxNumOfConnections) {
+        super(ipAddress, timeDelay, costs, maxNumOfConnections);
     }
+
+/*    @Override
+    public String toString() {
+        return "PC{" +
+                "\nid=" + getId() +
+                ", \nipAddress=" + getIpAddress() +
+                ", \ntimeDelay=" + getTimeDelay() +
+                ", \ncosts=" + getCosts() +
+                ", \nconnections=" + getConnections() +
+                ", \nmaxNumOfConnections=" + getMaxNumOfConnections() +
+                '}';
+    }*/
 
     @Override
     public String toString() {

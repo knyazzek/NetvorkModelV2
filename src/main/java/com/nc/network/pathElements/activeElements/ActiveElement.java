@@ -3,6 +3,10 @@ package com.nc.network.pathElements.activeElements;
 import com.nc.IpAddress;
 import com.nc.exceptions.NoPortsAvailableException;
 import com.nc.network.pathElements.IPathElement;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -13,19 +17,22 @@ public abstract class ActiveElement implements IPathElement {
     private int timeDelay;
     private int costs;
     private Set<IPathElement> connections;
-    private final int MAX_NUM_OF_CONNECTIONS;
+    private int maxNumOfConnections;
+    private static final long serialVersionUID = 1L;
 
-    public ActiveElement(int id,
-                         IpAddress ipAddress,
+    public ActiveElement() {
+        this.connections = new HashSet<IPathElement>();
+    }
+
+    public ActiveElement(IpAddress ipAddress,
                          int timeDelay,
                          int costs,
-                         int MAX_NUM_OF_CONNECTIONS) {
-        this.id = id;
+                         int maxNumOfConnections) {
         this.ipAddress = new IpAddress(ipAddress);
         this.timeDelay = timeDelay;
         this.costs = costs;
         this.connections = new HashSet<IPathElement>();
-        this.MAX_NUM_OF_CONNECTIONS = MAX_NUM_OF_CONNECTIONS;
+        this.maxNumOfConnections = maxNumOfConnections;
     }
 
     @Override
@@ -33,8 +40,17 @@ public abstract class ActiveElement implements IPathElement {
         return id;
     }
 
+    @Override
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public IpAddress getIpAddress() {
         return new IpAddress(ipAddress);
+    }
+
+    public void setIpAddress(IpAddress ipAddress) {
+        this.ipAddress = ipAddress;
     }
 
     @Override
@@ -43,8 +59,18 @@ public abstract class ActiveElement implements IPathElement {
     }
 
     @Override
+    public void setTimeDelay(int timeDelay) {
+        this.timeDelay = timeDelay;
+    }
+
+    @Override
     public int getCosts() {
         return costs;
+    }
+
+    @Override
+    public void setCosts(int costs) {
+        this.costs = costs;
     }
 
     @Override
@@ -61,10 +87,20 @@ public abstract class ActiveElement implements IPathElement {
 
     @Override
     public void addConnection(IPathElement connection) throws NoPortsAvailableException {
-        if (connections.size() < MAX_NUM_OF_CONNECTIONS)
+        if (connections.size() < maxNumOfConnections)
             connections.add(connection);
         else
             throw new NoPortsAvailableException("Device has no available ports");
+    }
+
+    @Override
+    public int getMaxNumOfConnections() {
+        return maxNumOfConnections;
+    }
+
+    @Override
+    public void setMaxNumOfConnections(int maxNumOfConnections) {
+        this.maxNumOfConnections = maxNumOfConnections;
     }
 
     @Override
@@ -75,18 +111,34 @@ public abstract class ActiveElement implements IPathElement {
         return id == that.id &&
                 timeDelay == that.timeDelay &&
                 costs == that.costs &&
-                MAX_NUM_OF_CONNECTIONS == that.MAX_NUM_OF_CONNECTIONS &&
+                maxNumOfConnections == that.maxNumOfConnections &&
                 ipAddress.equals(that.ipAddress) &&
                 connections.equals(that.connections);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, ipAddress, timeDelay, costs, connections, MAX_NUM_OF_CONNECTIONS);
+        int res = id;
+        res *= 31 + timeDelay;
+        res *= 31 + costs;
+        res *= 31 + maxNumOfConnections;
+        return res;
     }
 
     @Override
     public String getInfo() {
         return "";
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        IPathElement.super.writeExternal(out);
+        out.writeObject(ipAddress);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        IPathElement.super.readExternal(in);
+        ipAddress = (IpAddress)in.readObject();
     }
 }

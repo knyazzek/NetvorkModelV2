@@ -3,16 +3,23 @@ package com.nc.network.pathElements.activeElements;
 import com.nc.IpAddress;
 import com.nc.network.pathElements.IPathElement;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class Firewall extends ActiveElement {
+    private static final long serialVersionUID = 5L;
     private Set<IPathElement> bannedElements;
 
-    public Firewall(int id, IpAddress ipAddress, int timeDelay, int costs, int MAX_NUM_OF_CONNECTIONS) {
-        super(id, ipAddress, timeDelay, costs, MAX_NUM_OF_CONNECTIONS);
-        //TODO override equals
+    public Firewall() {
+        bannedElements = new HashSet<>();
+    }
+
+    public Firewall(IpAddress ipAddress, int timeDelay, int costs, int maxNumOfConnections) {
+        super(ipAddress, timeDelay, costs, maxNumOfConnections);
         bannedElements = new HashSet<>();
     }
 
@@ -31,9 +38,38 @@ public class Firewall extends ActiveElement {
     }
 
     @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeInt(bannedElements.size());
+        for (IPathElement pathElement : bannedElements) {
+            out.writeObject(pathElement);
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        int bannedElementsCount = in.readInt();
+
+        for (int i  = 0; i < bannedElementsCount; i++) {
+            addBannedElement((IPathElement)in.readObject());
+        }
+    }
+
+/*    @Override
     public String toString() {
         return "Firewall{" +
-                getId() +
+                "\nid=" + getId() +
+                ", \nipAddress=" + getIpAddress() +
+                ", \ntimeDelay=" + getTimeDelay() +
+                ", \ncosts=" + getCosts() +
+                ", \nconnections=" + getConnections() +
+                ", \nmaxNumOfConnections=" + getMaxNumOfConnections() +
+                ", \nbannedElements=" + getBannedElements() +
                 '}';
+    }*/
+    @Override
+    public String toString() {
+        return "Firewall{" + getId() + "}";
     }
 }

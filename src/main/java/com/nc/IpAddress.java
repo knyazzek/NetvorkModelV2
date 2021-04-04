@@ -1,10 +1,18 @@
 package com.nc;
 
 import com.nc.exceptions.InvalidIpAddressException;
+
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Arrays;
 
-public class IpAddress {
+public class IpAddress implements Externalizable {
+    private static final long serialVersionUID = 9L;
     private int[] nodeAddress;
+
+    public IpAddress() {}
 
     public IpAddress(int[] nodeAddress) throws InvalidIpAddressException {
         if (nodeAddress.length != 4) throw
@@ -37,5 +45,30 @@ public class IpAddress {
     @Override
     public int hashCode() {
         return Arrays.hashCode(nodeAddress);
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeInt(nodeAddress.length);
+        for (int i = 0; i < nodeAddress.length; i++) {
+            out.writeInt(nodeAddress[i]);
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        int arrayLength = in.readInt();
+        int[] nodeAddressTmp = new int[arrayLength];
+
+        for (int i = 0; i < arrayLength; i++) {
+            nodeAddressTmp[i] = in.readInt();
+        }
+        nodeAddress = nodeAddressTmp;
+    }
+
+    @Override
+    public String toString() {
+        return "IpAddress{" + Arrays.toString(nodeAddress) +
+                '}';
     }
 }
