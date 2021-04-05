@@ -1,6 +1,7 @@
-package com.nc;
+package com.nc.network.pathElements.activeElements;
 
 import com.nc.exceptions.InvalidIpAddressException;
+import org.apache.commons.lang3.math.NumberUtils;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -15,6 +16,34 @@ public class IpAddress implements Externalizable {
     public IpAddress() {}
 
     public IpAddress(int[] nodeAddress) throws InvalidIpAddressException {
+        setNodeAddress(nodeAddress);
+    }
+
+    public IpAddress(String nodeAddressString) throws InvalidIpAddressException {
+        String[] octets = nodeAddressString.split("\\.");
+        if (octets.length != 4) throw new InvalidIpAddressException("The IP address must have 4 octets.");
+
+        int[] nodeAddress = new int[4];
+
+        for (int i = 0; i < octets.length; i++) {
+            if (NumberUtils.isCreatable(octets[i]))
+                nodeAddress[i] = Integer.parseInt(octets[i]);
+            else
+                throw new InvalidIpAddressException("The octet of the Ip address must contain only digits.");
+
+            setNodeAddress(nodeAddress);
+        }
+    }
+
+    public IpAddress(IpAddress ipAddress) {
+        nodeAddress = ipAddress.getNodeAddress();
+    }
+
+    public int[] getNodeAddress() {
+        return Arrays.copyOf(nodeAddress, nodeAddress.length);
+    }
+
+    public void setNodeAddress(int[] nodeAddress) throws InvalidIpAddressException{
         if (nodeAddress.length != 4) throw
                 new InvalidIpAddressException("The IP address must have 4 octets.");
 
@@ -24,14 +53,6 @@ public class IpAddress implements Externalizable {
         }
 
         this.nodeAddress = Arrays.copyOf(nodeAddress, nodeAddress.length);
-    }
-
-    public IpAddress(IpAddress ipAddress) {
-        nodeAddress = ipAddress.getNodeAddress();
-    }
-
-    public int[] getNodeAddress() {
-        return Arrays.copyOf(nodeAddress, nodeAddress.length);
     }
 
     @Override

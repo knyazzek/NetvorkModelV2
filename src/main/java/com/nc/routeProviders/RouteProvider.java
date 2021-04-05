@@ -1,11 +1,10 @@
 package com.nc.routeProviders;
 
-import com.nc.IpAddress;
+import com.nc.network.pathElements.activeElements.IpAddress;
 import com.nc.exceptions.ElementNotFoundException;
 import com.nc.exceptions.RouteNotFoundException;
 import com.nc.network.Network;
 import com.nc.network.pathElements.IPathElement;
-import com.nc.network.pathElements.activeElements.ActiveElement;
 import com.nc.network.pathElements.activeElements.Firewall;
 import java.util.*;
 
@@ -44,7 +43,7 @@ public abstract class RouteProvider {
         setUpRoutingTable(sender);
 
         List<RoutingTableRow> route = new LinkedList<>();
-        return null;
+        return getRouteByRoutingTable();
     }
 
     private List<IPathElement> getRouteByRoutingTable() throws RouteNotFoundException {

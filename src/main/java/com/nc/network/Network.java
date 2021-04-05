@@ -1,11 +1,9 @@
 package com.nc.network;
 
-import com.nc.IpAddress;
+import com.nc.network.pathElements.activeElements.IpAddress;
 import com.nc.exceptions.ElementNotFoundException;
 import com.nc.network.pathElements.IPathElement;
 import com.nc.network.pathElements.activeElements.ActiveElement;
-import sun.nio.ch.Net;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -15,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Network implements Externalizable {
+    private static final long serialVersionUID = 10L;
     private String name;
     private Map<Integer, IPathElement> pathElements;
 

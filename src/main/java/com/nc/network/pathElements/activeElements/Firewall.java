@@ -1,6 +1,5 @@
 package com.nc.network.pathElements.activeElements;
 
-import com.nc.IpAddress;
 import com.nc.network.pathElements.IPathElement;
 
 import java.io.IOException;

@@ -1,6 +1,5 @@
 package com.nc.network.pathElements.activeElements;
 
-import com.nc.IpAddress;
 import com.nc.exceptions.NoPortsAvailableException;
 import com.nc.network.pathElements.IPathElement;
 
@@ -8,7 +7,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 public abstract class ActiveElement implements IPathElement {

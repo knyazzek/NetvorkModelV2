@@ -5,7 +5,7 @@ import com.nc.network.pathElements.IPathElement;
 public class MinNodesCountRouteProvider extends RouteProvider{
     private static MinNodesCountRouteProvider instance;
 
-    private MinNodesCountRouteProvider() {
+    public MinNodesCountRouteProvider() {
         super((o1, o2) -> 0);
     }
 

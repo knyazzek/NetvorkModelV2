@@ -5,7 +5,7 @@ import com.nc.network.pathElements.IPathElement;
 public class MinCostsRouteProvider extends RouteProvider{
     private static MinCostsRouteProvider instance;
 
-    private MinCostsRouteProvider() {
+    public MinCostsRouteProvider() {
         super((o1, o2) -> o1.getCosts() - o2.getCosts());
     }
 

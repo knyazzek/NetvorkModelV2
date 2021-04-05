@@ -1,7 +1,5 @@
 package com.nc.network.pathElements.activeElements;
 
-import com.nc.IpAddress;
-
 public class Switch extends ActiveElement {
     private static final long serialVersionUID = 4L;
 
