@@ -91,7 +91,8 @@ public class Network implements Externalizable {
     @Override
     public String toString() {
         return "Network{" +
-                "pathElements=" + pathElements +
+                "name=" + name +
+                ", pathElements=" + pathElements +
                 '}';
     }
 }

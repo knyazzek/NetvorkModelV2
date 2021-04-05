@@ -29,7 +29,6 @@ public abstract class RouteProvider {
         initRoutingTable(net);
         setUpRoutingTable(sender);
 
-        List<RoutingTableRow> route = new LinkedList<>();
         return getRouteByRoutingTable();
     }
 
