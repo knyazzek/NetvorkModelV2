@@ -1,12 +1,16 @@
 package com.nc.network.pathElements.activeElements;
 
 import com.nc.network.pathElements.PathElement;
+import com.nc.routeProviders.IRouteProvider;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 public abstract class ActiveElement extends PathElement {
     private IpAddress ipAddress;
+    //I'm not sure about the correctness of this decision
+    private IRouteProvider cachedRouteProvider;
+    private boolean hasActualRouteProvider;
     private static final long serialVersionUID = 1L;
 
     public ActiveElement() {
@@ -27,6 +31,22 @@ public abstract class ActiveElement extends PathElement {
 
     public void setIpAddress(IpAddress ipAddress) {
         this.ipAddress = ipAddress;
+    }
+
+    public IRouteProvider getCachedRouteProvider() {
+        return cachedRouteProvider;
+    }
+
+    public void setCachedRouteProvider(IRouteProvider cachedRouteProvider) {
+        this.cachedRouteProvider = cachedRouteProvider;
+    }
+
+    public boolean hasActualRouteProvider() {
+        return hasActualRouteProvider;
+    }
+
+    public void setHasActualRouteProvider(boolean hasActualRouteProvider) {
+        this.hasActualRouteProvider = hasActualRouteProvider;
     }
 
     @Override

@@ -1,9 +1,11 @@
 package com.nc.network;
 
+import com.nc.exceptions.InvalidIdException;
 import com.nc.exceptions.InvalidIpAddressException;
 import com.nc.exceptions.NoSuchRouteProvider;
 import com.nc.exceptions.RouteNotFoundException;
 import com.nc.network.pathElements.IPathElement;
+import com.nc.network.pathElements.activeElements.ActiveElement;
 import com.nc.network.pathElements.activeElements.IpAddress;
 import com.nc.network.pathElements.passiveElements.PassiveElement;
 import com.nc.routeProviders.IRouteProvider;
@@ -19,6 +21,9 @@ public class NetworkTest {
     private Map<String, Network> networks;
     private RouteProviderFactory routeProviderFactory;
     private IRouteProvider routeProvider;
+    private Network network;
+    private ActiveElement sender;
+    private ActiveElement recipient;
 
     public NetworkTest() {
         networks = new HashMap<>();
@@ -69,25 +74,31 @@ public class NetworkTest {
         objectInputStream.close();
     }
 
-    private void loadRouteProvider(String routeProviderName) throws NoSuchRouteProvider {
-        RouteProviderType rpt = RouteProviderType.getEnum(routeProviderName);
+    private void loadRouteProvider(String routeProviderName)
+            throws NoSuchRouteProvider {
+        if (sender.hasActualRouteProvider()) {
+            IRouteProvider routeProviderTmp = sender.getCachedRouteProvider();
 
-        if (rpt == null) {
-            throw new NoSuchRouteProvider("The route provider with name \""
-                    + routeProviderName + "\" was not found");
+            if (!routeProviderTmp.getRecipient().equals(recipient)) {
+                routeProviderTmp.setRecipient(recipient);
+            }
+
+            routeProvider = sender.getCachedRouteProvider();
+        } else {
+            RouteProviderType rpt = RouteProviderType.getEnum(routeProviderName);
+
+            if (rpt == null) {
+                throw new NoSuchRouteProvider("The route provider with name \""
+                        + routeProviderName + "\" was not found");
+            }
+            routeProvider = routeProviderFactory.createRouteProvider(rpt);
         }
-
-        routeProvider = routeProviderFactory.createRouteProvider(rpt);
     }
 
-    //TODO Remake route method
     private List<IPathElement> route(List<String> command) {
         List<String> commandTmp = new LinkedList<>(command);
         boolean isIp = false;
         boolean isOnlyActive = false;
-
-        Network net;
-        List<IPathElement> route;
 
         if (commandTmp.contains("-ip")) {
             isIp = true;
@@ -106,16 +117,28 @@ public class NetworkTest {
 
         String netName = command.get(1);
         String routeProviderName = command.get(2);
-        String sender = command.get(3);
-        String recipient = command.get(4);
+        String senderName = command.get(3);
+        String recipientName = command.get(4);
 
         if (!networks.containsKey(netName)) {
             System.out.println("Network with specified name not found.");
             return null;
         }
 
-        net = networks.get(netName);
+        network = networks.get(netName);
 
+        //Load Sender and Recipient
+        try {
+            loadSenderAndRecipient(isIp, senderName, recipientName);
+        } catch (InvalidIpAddressException e) {
+            System.out.println("Invalid IP Address entered");
+            return null;
+        } catch (InvalidIdException e) {
+            System.out.println("Invalid ID entered");
+            return null;
+        }
+
+        //LoadRouteProvider
         try {
             loadRouteProvider(routeProviderName);
         } catch (NoSuchRouteProvider noSuchRouteProvider) {
@@ -123,35 +146,36 @@ public class NetworkTest {
             return null;
         }
 
+        return getRoute(isOnlyActive);
+    }
+
+    private void loadSenderAndRecipient(boolean isIp, String senderName, String recipientName)
+            throws InvalidIpAddressException, InvalidIdException {
         if (isIp) {
-            try {
-                IpAddress senderIp = new IpAddress(sender);
-                IpAddress recipientIp = new IpAddress(recipient);
-                route = routeProvider.getRouteByIps(senderIp, recipientIp, net);
-            } catch (InvalidIpAddressException e) {
-                System.out.println("Node(s) not found.");
-                return null;
-            } catch (RouteNotFoundException e) {
-                System.out.println("Route between two specified nodes not found.");
-                return null;
-            }
+            sender = network.getPathElementByIp(new IpAddress(senderName));
+            recipient = network.getPathElementByIp(new IpAddress(recipientName));
         } else {
-            if (!NumberUtils.isCreatable(sender) ||
-                    !NumberUtils.isCreatable(recipient)) {
+            if (!NumberUtils.isCreatable(senderName) ||
+                    !NumberUtils.isCreatable(recipientName)) {
 
-                System.out.println("invalid node id(s) specified.");
-                return null;
+                System.out.println("Invalid node id(s) specified.");
+                throw new InvalidIdException();
             }
+            int senderId = Integer.parseInt(senderName);
+            int recipientId = Integer.parseInt(recipientName);
 
-            int senderId = Integer.parseInt(sender);
-            int recipientId = Integer.parseInt(recipient);
+            sender = (ActiveElement) network.getPathElementById(senderId);
+            recipient = (ActiveElement) network.getPathElementById(recipientId);
+        }
+    }
 
-            try {
-                route = routeProvider.getRouteByIds(senderId, recipientId, net);
-            } catch (RouteNotFoundException e) {
-                System.out.println("Route between two specified nodes not found");
-                return null;
-            }
+    private List<IPathElement> getRoute(boolean isOnlyActive) {
+        List<IPathElement> route = new LinkedList<>();
+
+        try {
+            route = routeProvider.getRoute(network, sender, recipient);
+        } catch (RouteNotFoundException e) {
+            System.out.println("The route between the two nodes was not found");
         }
 
         if (isOnlyActive) {

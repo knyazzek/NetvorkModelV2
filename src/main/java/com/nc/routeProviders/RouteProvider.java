@@ -1,6 +1,6 @@
 package com.nc.routeProviders;
 
-import com.nc.network.pathElements.activeElements.IpAddress;
+import com.nc.network.pathElements.activeElements.ActiveElement;
 import com.nc.exceptions.RouteNotFoundException;
 import com.nc.network.Network;
 import com.nc.network.pathElements.IPathElement;
@@ -14,40 +14,31 @@ public abstract class RouteProvider implements IRouteProvider{
     private Queue<IPathElement> availableMoves;
     private IPathElement sender;
     private IPathElement recipient;
+    private boolean isSetUp;
 
     public RouteProvider(Comparator<IPathElement> comparator) {
         this.routingTable = new HashMap<>();
         this.comparator = comparator;
         this.availableMoves = new PriorityQueue<>(comparator);
+        isSetUp = false;
     }
 
-    public List<IPathElement> getRouteByIds(int senderId, int recipientId, Network net)
+    public List<IPathElement> getRoute(Network net, IPathElement sender, IPathElement recipient)
             throws RouteNotFoundException {
-        sender = net.getPathElementById(senderId);
-        recipient = net.getPathElementById(recipientId);
+        this.sender = sender;
+        this.recipient = recipient;
 
-        return getRoute(net);
-    }
-
-    //TODO Rewrite duplicate code
-    public List<IPathElement> getRouteByIps(IpAddress senderIp, IpAddress recipientIp, Network net)
-            throws RouteNotFoundException {
-        sender = net.getPathElementByIp(senderIp);
-        recipient = net.getPathElementByIp(recipientIp);
-
-        return getRoute(net);
-    }
-
-    private List<IPathElement> getRoute(Network net) throws RouteNotFoundException {
         if (!isValidSenderAndRecipient()) {
             return null;
         }
-        initRoutingTable(net);
-        setUpRoutingTable(sender);
+        if (!isSetUp) {
+            initRoutingTable(net);
+            setUpRoutingTable(sender);
+        }
         return getRouteByRoutingTable();
     }
 
-    private boolean isValidSenderAndRecipient(){
+    private boolean isValidSenderAndRecipient() {
         if (sender == null || recipient == null) {
             System.out.println("Node(s) not found.");
             return false;
@@ -108,6 +99,9 @@ public abstract class RouteProvider implements IRouteProvider{
         if (nextStep != null) {
             setUpRoutingTable(nextStep);
         }
+
+        ((ActiveElement)this.sender).setHasActualRouteProvider(true);
+        ((ActiveElement)this.sender).setCachedRouteProvider(this);
     }
 
     private IPathElement getNextStepBasedOnBlockedElements(Firewall firewall) {
@@ -179,4 +173,22 @@ public abstract class RouteProvider implements IRouteProvider{
     }
 
     public abstract int valueOf(IPathElement pathElement);
+
+    public boolean isSetUp() {
+        return isSetUp;
+    }
+
+    @Override
+    public IPathElement getRecipient() {
+        return recipient;
+    }
+
+    @Override
+    public void setRecipient(IPathElement recipient) {
+        this.recipient = recipient;
+    }
+
+    public void setSetUp(boolean setUp) {
+        isSetUp = setUp;
+    }
 }
