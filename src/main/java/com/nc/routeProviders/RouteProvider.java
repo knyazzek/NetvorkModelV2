@@ -1,11 +1,11 @@
 package com.nc.routeProviders;
 
 import com.nc.network.pathElements.activeElements.IpAddress;
-import com.nc.exceptions.ElementNotFoundException;
 import com.nc.exceptions.RouteNotFoundException;
 import com.nc.network.Network;
 import com.nc.network.pathElements.IPathElement;
 import com.nc.network.pathElements.activeElements.Firewall;
+import com.nc.network.pathElements.activeElements.PC;
 import java.util.*;
 
 public abstract class RouteProvider implements IRouteProvider{
@@ -26,22 +26,38 @@ public abstract class RouteProvider implements IRouteProvider{
         sender = net.getPathElementById(senderId);
         recipient = net.getPathElementById(recipientId);
 
-        initRoutingTable(net);
-        setUpRoutingTable(sender);
-
-        return getRouteByRoutingTable();
+        return getRoute(net);
     }
 
     //TODO Rewrite duplicate code
     public List<IPathElement> getRouteByIps(IpAddress senderIp, IpAddress recipientIp, Network net)
-            throws RouteNotFoundException, ElementNotFoundException {
+            throws RouteNotFoundException {
         sender = net.getPathElementByIp(senderIp);
         recipient = net.getPathElementByIp(recipientIp);
 
+        return getRoute(net);
+    }
+
+    private List<IPathElement> getRoute(Network net) throws RouteNotFoundException {
+        if (!isValidSenderAndRecipient()) {
+            return null;
+        }
         initRoutingTable(net);
         setUpRoutingTable(sender);
-
         return getRouteByRoutingTable();
+    }
+
+    private boolean isValidSenderAndRecipient(){
+        if (sender == null || recipient == null) {
+            System.out.println("Node(s) not found.");
+            return false;
+        }
+        if (!(sender instanceof PC) || !(recipient instanceof PC)) {
+            System.out.println("You can only find the route from PC to PC");
+            return false;
+        }
+
+        return true;
     }
 
     private List<IPathElement> getRouteByRoutingTable() throws RouteNotFoundException {
@@ -84,9 +100,9 @@ public abstract class RouteProvider implements IRouteProvider{
         }
         IPathElement nextStep = availableMoves.poll();
 
-        //В отдельный метод
         if (nextStep instanceof Firewall) {
-            checkBannedElements(nextStep);
+            Firewall firewall = (Firewall)nextStep;
+            nextStep = getNextStepBasedOnBlockedElements(firewall);
         }
 
         if (nextStep != null) {
@@ -94,17 +110,23 @@ public abstract class RouteProvider implements IRouteProvider{
         }
     }
 
-    public void checkBannedElements(IPathElement nextStep) {
-        if (((Firewall) nextStep).getBannedElements().contains(recipient) ||
-                ((Firewall) nextStep).getBannedElements().contains(this.sender)) {
-            routingTable.get(nextStep).setVisitedTrue();
-            routingTable.get(nextStep).setPrevious(sender);
-            availableMoves.remove(nextStep);
-            nextStep = availableMoves.poll();
+    private IPathElement getNextStepBasedOnBlockedElements(Firewall firewall) {
+        if (hasBannedSenderOrRecipient(firewall)) {
+            routingTable.get(firewall).setVisitedTrue();
+            routingTable.get(firewall).setPrevious(sender);
+            availableMoves.remove(firewall);
+            return availableMoves.poll();
         }
+        return firewall;
     }
 
-
+    private boolean hasBannedSenderOrRecipient(Firewall firewall) {
+        if (firewall.getBannedElements().contains(recipient) ||
+            firewall.getBannedElements().contains(sender)) {
+            return true;
+        }
+        return false;
+    }
 
     private class RoutingTableRow {
         private boolean visited;

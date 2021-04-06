@@ -26,7 +26,7 @@ public class Network implements Externalizable {
         this.pathElements = new HashMap<>();
     }
 
-    public ActiveElement getPathElementByIp(IpAddress ipAddress) throws ElementNotFoundException {
+    public ActiveElement getPathElementByIp(IpAddress ipAddress) {
         for (IPathElement pathElement : pathElements.values()) {
             if (pathElement instanceof ActiveElement) {
                 ActiveElement activeElement = (ActiveElement) pathElement;
@@ -35,7 +35,7 @@ public class Network implements Externalizable {
                     return activeElement;
             }
         }
-        throw  new ElementNotFoundException("The element with the specified Ip was not found");
+        return null;
     }
 
     public IPathElement getPathElementById(int id) {

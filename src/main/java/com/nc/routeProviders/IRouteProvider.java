@@ -1,6 +1,5 @@
 package com.nc.routeProviders;
 
-import com.nc.exceptions.ElementNotFoundException;
 import com.nc.exceptions.RouteNotFoundException;
 import com.nc.network.Network;
 import com.nc.network.pathElements.IPathElement;
@@ -11,5 +10,5 @@ public interface IRouteProvider{
     List<IPathElement> getRouteByIds(int senderId, int recipientId, Network net)
             throws RouteNotFoundException;
     List<IPathElement> getRouteByIps(IpAddress senderIp, IpAddress recipientIp, Network net)
-            throws RouteNotFoundException, ElementNotFoundException;
+            throws RouteNotFoundException;
 }
