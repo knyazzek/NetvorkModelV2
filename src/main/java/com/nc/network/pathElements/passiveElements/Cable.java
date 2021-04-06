@@ -15,7 +15,7 @@ public class Cable extends PassiveElement {
         addConnection(pe2);
 
         pe1.addConnection(this);
-        pe1.addConnection(this);
+        pe2.addConnection(this);
     }
 
     @Override

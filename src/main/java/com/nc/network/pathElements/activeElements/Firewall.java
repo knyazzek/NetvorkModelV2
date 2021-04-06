@@ -31,9 +31,7 @@ public class Firewall extends ActiveElement {
     }
 
     public void addBannedIpAddresses(List<IPathElement> bannedElements) {
-        for (IPathElement bannedElement : bannedElements) {
-            bannedElements.add(bannedElement);
-        }
+        bannedElements.addAll(bannedElements);
     }
 
     @Override

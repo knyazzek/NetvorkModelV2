@@ -43,7 +43,7 @@ public class Network implements Externalizable {
     }
 
     public Map<Integer, IPathElement> getPathElements() {
-        return new HashMap<Integer, IPathElement>(pathElements);
+        return new HashMap<>(pathElements);
     }
 
     public void addPathElement(IPathElement pathElement) {
@@ -66,8 +66,8 @@ public class Network implements Externalizable {
         out.writeObject(name);
         out.writeInt(pathElements.size());
 
-        for (Map.Entry pathElement : pathElements.entrySet()) {
-            out.writeInt((Integer) pathElement.getKey());
+        for (Map.Entry<Integer, IPathElement> pathElement : pathElements.entrySet()) {
+            out.writeInt(pathElement.getKey());
             out.writeObject(pathElement.getValue());
         }
     }

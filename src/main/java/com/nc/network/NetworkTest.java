@@ -7,6 +7,7 @@ import com.nc.exceptions.RouteNotFoundException;
 import com.nc.network.pathElements.IPathElement;
 import com.nc.network.pathElements.activeElements.IpAddress;
 import com.nc.network.pathElements.passiveElements.PassiveElement;
+import com.nc.routeProviders.IRouteProvider;
 import com.nc.routeProviders.RouteProvider;
 import org.apache.commons.lang3.math.NumberUtils;
 import java.io.FileInputStream;
@@ -16,7 +17,7 @@ import java.util.*;
 
 public class NetworkTest {
     private Map<String, Network> networks;
-    private RouteProvider routeProvider;
+    private IRouteProvider routeProvider;
 
     public NetworkTest() {
         networks = new HashMap<>();
@@ -32,7 +33,6 @@ public class NetworkTest {
 
         Scanner scanner = new Scanner(System.in);
 
-        outer:
         while (true) {
             System.out.print("Input:");
             String str = scanner.nextLine();

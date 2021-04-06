@@ -8,7 +8,7 @@ import com.nc.network.pathElements.IPathElement;
 import com.nc.network.pathElements.activeElements.Firewall;
 import java.util.*;
 
-public abstract class RouteProvider {
+public abstract class RouteProvider implements IRouteProvider{
     private Map<IPathElement, RoutingTableRow> routingTable;
     private Comparator<IPathElement> comparator;
     private Queue<IPathElement> availableMoves;
@@ -41,7 +41,6 @@ public abstract class RouteProvider {
         initRoutingTable(net);
         setUpRoutingTable(sender);
 
-        List<RoutingTableRow> route = new LinkedList<>();
         return getRouteByRoutingTable();
     }
 
@@ -85,18 +84,27 @@ public abstract class RouteProvider {
         }
         IPathElement nextStep = availableMoves.poll();
 
-        if (nextStep != null && nextStep instanceof Firewall) {
-            if (((Firewall) nextStep).getBannedElements().contains(recipient)) {
-                routingTable.get(nextStep).setVisitedTrue();
-                routingTable.get(nextStep).setPrevious(sender);
-                availableMoves.remove(nextStep);
-                nextStep = availableMoves.poll();
-            }
+        //В отдельный метод
+        if (nextStep instanceof Firewall) {
+            checkBannedElements(nextStep);
         }
 
-        if (nextStep != null)
+        if (nextStep != null) {
             setUpRoutingTable(nextStep);
+        }
     }
+
+    public void checkBannedElements(IPathElement nextStep) {
+        if (((Firewall) nextStep).getBannedElements().contains(recipient) ||
+                ((Firewall) nextStep).getBannedElements().contains(this.sender)) {
+            routingTable.get(nextStep).setVisitedTrue();
+            routingTable.get(nextStep).setPrevious(sender);
+            availableMoves.remove(nextStep);
+            nextStep = availableMoves.poll();
+        }
+    }
+
+
 
     private class RoutingTableRow {
         private boolean visited;

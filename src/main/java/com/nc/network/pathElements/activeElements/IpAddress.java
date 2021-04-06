@@ -77,7 +77,7 @@ public class IpAddress implements Externalizable {
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    public void readExternal(ObjectInput in) throws IOException {
         int arrayLength = in.readInt();
         int[] nodeAddressTmp = new int[arrayLength];
 
