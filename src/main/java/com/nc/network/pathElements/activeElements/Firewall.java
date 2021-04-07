@@ -1,7 +1,6 @@
 package com.nc.network.pathElements.activeElements;
 
 import com.nc.network.pathElements.IPathElement;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

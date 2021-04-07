@@ -1,6 +1,7 @@
 package com.nc.network.pathElements;
 
 import com.nc.exceptions.NoPortsAvailableException;
+import com.nc.network.Network;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -14,6 +15,8 @@ public abstract class PathElement implements IPathElement{
     private int costs;
     private int maxNumOfConnections;
     private Set<IPathElement> connections;
+    private Network network;
+    private static final long serialVersionUID = 11L;
 
     public PathElement() {
         this.connections = new HashSet<>();
@@ -73,10 +76,19 @@ public abstract class PathElement implements IPathElement{
 
     @Override
     public void addConnection(IPathElement pathElement) throws NoPortsAvailableException {
-        if (connections.size() < maxNumOfConnections)
+        if (connections.size() < maxNumOfConnections) {
             connections.add(pathElement);
-        else
+            if (network != null) {
+                network.refreshAllCachedRouteProviders();
+            }
+        } else {
             throw new NoPortsAvailableException("Device has no available ports");
+        }
+    }
+
+    @Override
+    public void setNetwork(Network net) {
+        this.network = net;
     }
 
     @Override
@@ -90,6 +102,8 @@ public abstract class PathElement implements IPathElement{
         for (IPathElement pathElement : getConnections()) {
             out.writeObject(pathElement);
         }
+
+        out.writeObject(network);
     }
 
     @Override
@@ -107,5 +121,7 @@ public abstract class PathElement implements IPathElement{
                 System.out.println("Element doesn't have available ports");
             }
         }
+
+        network = (Network) in.readObject();
     }
 }

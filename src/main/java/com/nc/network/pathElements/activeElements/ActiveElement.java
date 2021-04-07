@@ -1,15 +1,15 @@
 package com.nc.network.pathElements.activeElements;
 
 import com.nc.network.pathElements.PathElement;
-import com.nc.routeProviders.IRouteProvider;
+import com.nc.routeProviders.RouteProvider;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 public abstract class ActiveElement extends PathElement {
     private IpAddress ipAddress;
-    //I'm not sure about the correctness of this decision
-    private IRouteProvider cachedRouteProvider;
+    private RouteProvider cachedRouteProvider;
     private boolean hasActualRouteProvider;
     private static final long serialVersionUID = 1L;
 
@@ -33,11 +33,11 @@ public abstract class ActiveElement extends PathElement {
         this.ipAddress = ipAddress;
     }
 
-    public IRouteProvider getCachedRouteProvider() {
+    public RouteProvider getCachedRouteProvider() {
         return cachedRouteProvider;
     }
 
-    public void setCachedRouteProvider(IRouteProvider cachedRouteProvider) {
+    public void setCachedRouteProvider(RouteProvider cachedRouteProvider) {
         this.cachedRouteProvider = cachedRouteProvider;
     }
 
@@ -80,11 +80,13 @@ public abstract class ActiveElement extends PathElement {
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeObject(ipAddress);
+        out.writeObject(cachedRouteProvider);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         ipAddress = (IpAddress)in.readObject();
+        cachedRouteProvider = (RouteProvider)in.readObject();
     }
 }

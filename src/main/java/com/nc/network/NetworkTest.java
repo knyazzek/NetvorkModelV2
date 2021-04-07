@@ -1,14 +1,12 @@
 package com.nc.network;
 
-import com.nc.exceptions.InvalidIdException;
-import com.nc.exceptions.InvalidIpAddressException;
-import com.nc.exceptions.NoSuchRouteProvider;
-import com.nc.exceptions.RouteNotFoundException;
+import com.nc.exceptions.*;
 import com.nc.network.pathElements.IPathElement;
 import com.nc.network.pathElements.activeElements.ActiveElement;
 import com.nc.network.pathElements.activeElements.IpAddress;
 import com.nc.network.pathElements.passiveElements.PassiveElement;
 import com.nc.routeProviders.IRouteProvider;
+import com.nc.routeProviders.RouteProvider;
 import com.nc.routeProviders.RouteProviderFactory;
 import com.nc.routeProviders.RouteProviderType;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -21,9 +19,6 @@ public class NetworkTest {
     private Map<String, Network> networks;
     private RouteProviderFactory routeProviderFactory;
     private IRouteProvider routeProvider;
-    private Network network;
-    private ActiveElement sender;
-    private ActiveElement recipient;
 
     public NetworkTest() {
         networks = new HashMap<>();
@@ -74,10 +69,91 @@ public class NetworkTest {
         objectInputStream.close();
     }
 
-    private void loadRouteProvider(String routeProviderName)
+    private List<IPathElement> route(List<String> command) {
+        List<String> commandTmp = new LinkedList<>(command);
+        boolean isIp = false;
+        boolean isOnlyActive = false;
+        Network net;
+        ActiveElement sender;
+        ActiveElement recipient;
+
+        if (commandTmp.contains("-ip")) {
+            isIp = true;
+            commandTmp.remove("-ip");
+        }
+
+        if (commandTmp.contains("-a")) {
+            isOnlyActive = true;
+            commandTmp.remove("-a");
+        }
+
+        if (commandTmp.size() != 5) {
+            System.out.println("Invalid number of parameters entered.");
+            System.out.println(commandTmp);
+            return null;
+        }
+
+        String netName = commandTmp.get(1);
+        String routeProviderName = commandTmp.get(2);
+        String senderParameter = commandTmp.get(3);
+        String recipientParameter = commandTmp.get(4);
+
+        //Load Network
+        if (!networks.containsKey(netName)) {
+            System.out.println("Network with specified name not found.");
+            return null;
+        }
+        net = networks.get(netName);
+
+        //Load Sender and Recipient
+        sender = getActiveElement(isIp, senderParameter, net);
+        recipient = getActiveElement(isIp, recipientParameter, net);
+
+        if (sender == null || recipient == null) {
+            return null;
+        }
+
+        //LoadRouteProvider
+        try {
+            loadRouteProvider(routeProviderName, sender, recipient);
+        } catch (NoSuchRouteProvider noSuchRouteProvider) {
+            System.out.println("Route provider with specified name not found.");
+            return null;
+        }
+
+        return getRoute(isOnlyActive, net, sender, recipient);
+    }
+
+    private ActiveElement getActiveElement(boolean isIp, String pathElementParameter, Network net) {
+        ActiveElement activeElement;
+
+        if (isIp) {
+            try {
+                activeElement = net.getPathElementByIp(new IpAddress(pathElementParameter));
+            } catch (InvalidIpAddressException e) {
+                System.out.println(pathElementParameter + " is invalid Ip Address");
+                return null;
+            }
+        } else {
+            if (!NumberUtils.isCreatable(pathElementParameter)){
+                System.out.println(pathElementParameter + " is invalid Id");
+                return null;
+            }
+            int pathElementId = Integer.parseInt(pathElementParameter);
+            activeElement = net.getPathElementById(pathElementId);
+        }
+
+        if (activeElement == null)
+            System.out.println("The element with specified parameters \"" + pathElementParameter
+                    + "\" doesn't exist or is not an active element.");
+
+        return activeElement;
+    }
+
+    private void loadRouteProvider(String routeProviderName, ActiveElement sender, ActiveElement recipient)
             throws NoSuchRouteProvider {
         if (sender.hasActualRouteProvider()) {
-            IRouteProvider routeProviderTmp = sender.getCachedRouteProvider();
+            RouteProvider routeProviderTmp = sender.getCachedRouteProvider();
 
             if (!routeProviderTmp.getRecipient().equals(recipient)) {
                 routeProviderTmp.setRecipient(recipient);
@@ -95,87 +171,17 @@ public class NetworkTest {
         }
     }
 
-    private List<IPathElement> route(List<String> command) {
-        List<String> commandTmp = new LinkedList<>(command);
-        boolean isIp = false;
-        boolean isOnlyActive = false;
-
-        if (commandTmp.contains("-ip")) {
-            isIp = true;
-            commandTmp.remove("-ip");
-        }
-
-        if (commandTmp.contains("-a")) {
-            isOnlyActive = true;
-            commandTmp.remove("-a");
-        }
-
-        if (command.size() != 5) {
-            System.out.println("Invalid number of parameters entered.");
-            return null;
-        }
-
-        String netName = command.get(1);
-        String routeProviderName = command.get(2);
-        String senderName = command.get(3);
-        String recipientName = command.get(4);
-
-        if (!networks.containsKey(netName)) {
-            System.out.println("Network with specified name not found.");
-            return null;
-        }
-
-        network = networks.get(netName);
-
-        //Load Sender and Recipient
-        try {
-            loadSenderAndRecipient(isIp, senderName, recipientName);
-        } catch (InvalidIpAddressException e) {
-            System.out.println("Invalid IP Address entered");
-            return null;
-        } catch (InvalidIdException e) {
-            System.out.println("Invalid ID entered");
-            return null;
-        }
-
-        //LoadRouteProvider
-        try {
-            loadRouteProvider(routeProviderName);
-        } catch (NoSuchRouteProvider noSuchRouteProvider) {
-            System.out.println("Route provider with specified name not found.");
-            return null;
-        }
-
-        return getRoute(isOnlyActive);
-    }
-
-    private void loadSenderAndRecipient(boolean isIp, String senderName, String recipientName)
-            throws InvalidIpAddressException, InvalidIdException {
-        if (isIp) {
-            sender = network.getPathElementByIp(new IpAddress(senderName));
-            recipient = network.getPathElementByIp(new IpAddress(recipientName));
-        } else {
-            if (!NumberUtils.isCreatable(senderName) ||
-                    !NumberUtils.isCreatable(recipientName)) {
-
-                System.out.println("Invalid node id(s) specified.");
-                throw new InvalidIdException();
-            }
-            int senderId = Integer.parseInt(senderName);
-            int recipientId = Integer.parseInt(recipientName);
-
-            sender = (ActiveElement) network.getPathElementById(senderId);
-            recipient = (ActiveElement) network.getPathElementById(recipientId);
-        }
-    }
-
-    private List<IPathElement> getRoute(boolean isOnlyActive) {
-        List<IPathElement> route = new LinkedList<>();
+    private List<IPathElement> getRoute(boolean isOnlyActive,
+                                        Network net,
+                                        IPathElement sender,
+                                        IPathElement recipient) {
+        List<IPathElement> route;
 
         try {
-            route = routeProvider.getRoute(network, sender, recipient);
+            route = routeProvider.getRoute(net, sender, recipient);
         } catch (RouteNotFoundException e) {
             System.out.println("The route between the two nodes was not found");
+            return null;
         }
 
         if (isOnlyActive) {

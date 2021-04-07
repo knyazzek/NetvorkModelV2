@@ -6,9 +6,14 @@ import com.nc.network.Network;
 import com.nc.network.pathElements.IPathElement;
 import com.nc.network.pathElements.activeElements.Firewall;
 import com.nc.network.pathElements.activeElements.PC;
+
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.*;
 
-public abstract class RouteProvider implements IRouteProvider{
+public abstract class RouteProvider implements IRouteProvider {
     private Map<IPathElement, RoutingTableRow> routingTable;
     private Comparator<IPathElement> comparator;
     private Queue<IPathElement> availableMoves;
@@ -16,11 +21,15 @@ public abstract class RouteProvider implements IRouteProvider{
     private IPathElement recipient;
     private boolean isSetUp;
 
-    public RouteProvider(Comparator<IPathElement> comparator) {
+    public RouteProvider() {
         this.routingTable = new HashMap<>();
+        isSetUp = false;
+    }
+
+    public RouteProvider(Comparator<IPathElement> comparator) {
+        this();
         this.comparator = comparator;
         this.availableMoves = new PriorityQueue<>(comparator);
-        isSetUp = false;
     }
 
     public List<IPathElement> getRoute(Network net, IPathElement sender, IPathElement recipient)
@@ -122,7 +131,7 @@ public abstract class RouteProvider implements IRouteProvider{
         return false;
     }
 
-    private class RoutingTableRow {
+    private class RoutingTableRow implements Externalizable {
         private boolean visited;
         private int metric;
         private IPathElement previous;
@@ -163,6 +172,20 @@ public abstract class RouteProvider implements IRouteProvider{
         }
 
         @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeBoolean(isVisited());
+            out.writeInt(metric);
+            out.writeObject(previous);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            this.visited = in.readBoolean();
+            this.metric = in.readInt();
+            this.previous = (IPathElement) in.readObject();
+        }
+
+        @Override
         public String toString() {
             return "RoutingTableRow{" +
                     "visited=" + visited +
@@ -178,17 +201,44 @@ public abstract class RouteProvider implements IRouteProvider{
         return isSetUp;
     }
 
-    @Override
     public IPathElement getRecipient() {
         return recipient;
     }
 
-    @Override
     public void setRecipient(IPathElement recipient) {
         this.recipient = recipient;
     }
 
     public void setSetUp(boolean setUp) {
         isSetUp = setUp;
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeInt(routingTable.size());
+
+        for (Map.Entry<IPathElement, RoutingTableRow> pathElement : routingTable.entrySet()) {
+            out.writeObject(pathElement.getKey());
+            out.writeObject(pathElement.getValue());
+        }
+
+        out.writeObject(sender);
+        out.writeObject(recipient);
+        out.writeBoolean(isSetUp);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        int routingTableSize = in.readInt();
+
+        for (int i =0; i < routingTableSize; i++) {
+            IPathElement key = (IPathElement) in.readObject();
+            RoutingTableRow value = (RoutingTableRow) in.readObject();
+            routingTable.put(key, value);
+        }
+
+        sender = (IPathElement) in.readObject();
+        recipient = (IPathElement) in.readObject();
+        isSetUp = in.readBoolean();
     }
 }

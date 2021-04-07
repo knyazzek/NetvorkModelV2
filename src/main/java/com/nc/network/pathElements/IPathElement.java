@@ -1,6 +1,8 @@
 package com.nc.network.pathElements;
 
 import com.nc.exceptions.NoPortsAvailableException;
+import com.nc.network.Network;
+
 import java.io.Externalizable;
 import java.util.Collection;
 
@@ -15,5 +17,6 @@ public interface IPathElement extends Externalizable{
     void addConnection(IPathElement pathElement) throws NoPortsAvailableException;
     int getMaxNumOfConnections();
     void setMaxNumOfConnections(int num);
+    void setNetwork(Network net);
     String getInfo();
 }

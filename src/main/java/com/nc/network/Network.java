@@ -1,7 +1,6 @@
 package com.nc.network;
 
 import com.nc.network.pathElements.activeElements.IpAddress;
-import com.nc.exceptions.ElementNotFoundException;
 import com.nc.network.pathElements.IPathElement;
 import com.nc.network.pathElements.activeElements.ActiveElement;
 import java.io.Externalizable;
@@ -38,8 +37,14 @@ public class Network implements Externalizable {
         return null;
     }
 
-    public IPathElement getPathElementById(int id) {
-        return pathElements.get(id);
+    public ActiveElement getPathElementById(int id) {
+        IPathElement element = pathElements.get(id);
+
+        if (element instanceof ActiveElement) {
+            return (ActiveElement) element;
+        }
+
+        return null;
     }
 
     public Map<Integer, IPathElement> getPathElements() {
@@ -49,6 +54,7 @@ public class Network implements Externalizable {
     public void addPathElement(IPathElement pathElement) {
         pathElement.setId(pathElements.size());
         pathElements.put(pathElements.size(), pathElement);
+        pathElement.setNetwork(this);
     }
 
     public void addPathElements(List<IPathElement> pathElements) {
@@ -81,6 +87,14 @@ public class Network implements Externalizable {
             int key  = in.readInt();
             IPathElement value = (IPathElement) in.readObject();
             pathElements.put(key, value);
+        }
+    }
+
+    public void refreshAllCachedRouteProviders() {
+        for (IPathElement pathElement : pathElements.values()) {
+            if (pathElement instanceof ActiveElement) {
+                ((ActiveElement) pathElement).setHasActualRouteProvider(false);
+            }
         }
     }
 
