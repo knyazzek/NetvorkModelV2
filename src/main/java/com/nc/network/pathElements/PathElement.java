@@ -2,7 +2,6 @@ package com.nc.network.pathElements;
 
 import com.nc.exceptions.NoPortsAvailableException;
 import com.nc.network.Network;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

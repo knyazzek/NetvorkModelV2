@@ -6,7 +6,6 @@ import com.nc.network.pathElements.activeElements.ActiveElement;
 import com.nc.network.pathElements.activeElements.IpAddress;
 import com.nc.network.pathElements.passiveElements.PassiveElement;
 import com.nc.routeProviders.IRouteProvider;
-import com.nc.routeProviders.RouteProvider;
 import com.nc.routeProviders.RouteProviderFactory;
 import com.nc.routeProviders.RouteProviderType;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -89,7 +88,6 @@ public class NetworkTest {
 
         if (commandTmp.size() != 5) {
             System.out.println("Invalid number of parameters entered.");
-            System.out.println(commandTmp);
             return null;
         }
 
@@ -152,13 +150,10 @@ public class NetworkTest {
 
     private void loadRouteProvider(String routeProviderName, ActiveElement sender, ActiveElement recipient)
             throws NoSuchRouteProvider {
-        if (sender.hasActualRouteProvider()) {
-            RouteProvider routeProviderTmp = sender.getCachedRouteProvider();
-
-            if (!routeProviderTmp.getRecipient().equals(recipient)) {
-                routeProviderTmp.setRecipient(recipient);
-            }
-
+        if (sender.hasActualRouteProvider() &&
+                //TODO rewrite
+                sender.getCachedRouteProvider().getClass().getSimpleName().equals(routeProviderName)) {
+            System.out.println("We use a cached routing table.");
             routeProvider = sender.getCachedRouteProvider();
         } else {
             RouteProviderType rpt = RouteProviderType.getEnum(routeProviderName);

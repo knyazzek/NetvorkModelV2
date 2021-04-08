@@ -9,18 +9,6 @@ public class PC extends ActiveElement{
         super(ipAddress, timeDelay, costs, maxNumOfConnections);
     }
 
-/*    @Override
-    public String toString() {
-        return "PC{" +
-                "\nid=" + getId() +
-                ", \nipAddress=" + getIpAddress() +
-                ", \ntimeDelay=" + getTimeDelay() +
-                ", \ncosts=" + getCosts() +
-                ", \nconnections=" + getConnections() +
-                ", \nmaxNumOfConnections=" + getMaxNumOfConnections() +
-                '}';
-    }*/
-
     @Override
     public String toString() {
         return "PC{" + getId() + "}";

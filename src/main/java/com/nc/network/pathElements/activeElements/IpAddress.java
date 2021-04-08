@@ -2,7 +2,6 @@ package com.nc.network.pathElements.activeElements;
 
 import com.nc.exceptions.InvalidIpAddressException;
 import org.apache.commons.lang3.math.NumberUtils;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;

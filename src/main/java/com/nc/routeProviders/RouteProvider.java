@@ -6,20 +6,24 @@ import com.nc.network.Network;
 import com.nc.network.pathElements.IPathElement;
 import com.nc.network.pathElements.activeElements.Firewall;
 import com.nc.network.pathElements.activeElements.PC;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public abstract class RouteProvider implements IRouteProvider {
     private Map<IPathElement, RoutingTableRow> routingTable;
     private Comparator<IPathElement> comparator;
     private Queue<IPathElement> availableMoves;
     private IPathElement sender;
-    private IPathElement recipient;
     private boolean isSetUp;
+    ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    Lock readLock = readWriteLock.readLock();
+    Lock writeLock = readWriteLock.writeLock();
 
     public RouteProvider() {
         this.routingTable = new HashMap<>();
@@ -32,35 +36,42 @@ public abstract class RouteProvider implements IRouteProvider {
         this.availableMoves = new PriorityQueue<>(comparator);
     }
 
-    public List<IPathElement> getRoute(Network net, IPathElement sender, IPathElement recipient)
+    public List<IPathElement> getRoute(Network net, IPathElement sender, IPathElement rec)
             throws RouteNotFoundException {
+        readLock.lock();
         this.sender = sender;
-        this.recipient = recipient;
+        IPathElement recipient = rec;
 
-        if (!isValidSenderAndRecipient()) {
+        if (!isValidElement(this.sender) || !isValidElement(recipient)) {
             return null;
         }
-        if (!isSetUp) {
-            initRoutingTable(net);
-            setUpRoutingTable(sender);
+        synchronized (this) {
+            if (!isSetUp) {
+                System.out.println("Configuring the routing table.");
+                initRoutingTable(net);
+                setUpRoutingTable(sender, recipient);
+                isSetUp = true;
+            }
         }
-        return getRouteByRoutingTable();
+        readLock.unlock();
+        return getRouteByRoutingTable(recipient);
     }
 
-    private boolean isValidSenderAndRecipient() {
-        if (sender == null || recipient == null) {
-            System.out.println("Node(s) not found.");
+    private boolean isValidElement(IPathElement element) {
+        if (element == null) {
+            System.out.println("Node not found.");
             return false;
         }
-        if (!(sender instanceof PC) || !(recipient instanceof PC)) {
-            System.out.println("You can only find the route from PC to PC");
+        if (!(element instanceof PC)) {
+            System.out.println(element + " is not a PC");
             return false;
         }
 
         return true;
     }
 
-    private List<IPathElement> getRouteByRoutingTable() throws RouteNotFoundException {
+    private List<IPathElement> getRouteByRoutingTable(IPathElement recipient)
+            throws RouteNotFoundException {
         List<IPathElement> route = new LinkedList<>();
 
         for (IPathElement pathElement = recipient; pathElement != null;
@@ -82,7 +93,7 @@ public abstract class RouteProvider implements IRouteProvider {
         routingTable.get(sender).metric = valueOf(sender);
     }
 
-    private void setUpRoutingTable(IPathElement sender) {
+    private void setUpRoutingTable(IPathElement sender, IPathElement recipient) {
         for (IPathElement connection : sender.getConnections()) {
             if (!routingTable.get(connection).visited) {
                 int connectionMetric = routingTable.get(connection).metric;
@@ -102,19 +113,19 @@ public abstract class RouteProvider implements IRouteProvider {
 
         if (nextStep instanceof Firewall) {
             Firewall firewall = (Firewall)nextStep;
-            nextStep = getNextStepBasedOnBlockedElements(firewall);
+            nextStep = getNextStepBasedOnBlockedElements(firewall, recipient);
         }
 
         if (nextStep != null) {
-            setUpRoutingTable(nextStep);
+            setUpRoutingTable(nextStep, recipient);
         }
 
         ((ActiveElement)this.sender).setHasActualRouteProvider(true);
         ((ActiveElement)this.sender).setCachedRouteProvider(this);
     }
 
-    private IPathElement getNextStepBasedOnBlockedElements(Firewall firewall) {
-        if (hasBannedSenderOrRecipient(firewall)) {
+    private IPathElement getNextStepBasedOnBlockedElements(Firewall firewall, IPathElement recipient) {
+        if (hasBannedSenderOrRecipient(firewall, recipient)) {
             routingTable.get(firewall).setVisitedTrue();
             routingTable.get(firewall).setPrevious(sender);
             availableMoves.remove(firewall);
@@ -123,7 +134,7 @@ public abstract class RouteProvider implements IRouteProvider {
         return firewall;
     }
 
-    private boolean hasBannedSenderOrRecipient(Firewall firewall) {
+    private boolean hasBannedSenderOrRecipient(Firewall firewall, IPathElement recipient) {
         if (firewall.getBannedElements().contains(recipient) ||
             firewall.getBannedElements().contains(sender)) {
             return true;
@@ -197,22 +208,6 @@ public abstract class RouteProvider implements IRouteProvider {
 
     public abstract int valueOf(IPathElement pathElement);
 
-    public boolean isSetUp() {
-        return isSetUp;
-    }
-
-    public IPathElement getRecipient() {
-        return recipient;
-    }
-
-    public void setRecipient(IPathElement recipient) {
-        this.recipient = recipient;
-    }
-
-    public void setSetUp(boolean setUp) {
-        isSetUp = setUp;
-    }
-
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(routingTable.size());
@@ -223,7 +218,6 @@ public abstract class RouteProvider implements IRouteProvider {
         }
 
         out.writeObject(sender);
-        out.writeObject(recipient);
         out.writeBoolean(isSetUp);
     }
 
@@ -238,7 +232,6 @@ public abstract class RouteProvider implements IRouteProvider {
         }
 
         sender = (IPathElement) in.readObject();
-        recipient = (IPathElement) in.readObject();
         isSetUp = in.readBoolean();
     }
 }

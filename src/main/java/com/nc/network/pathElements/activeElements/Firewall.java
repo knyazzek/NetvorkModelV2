@@ -29,7 +29,7 @@ public class Firewall extends ActiveElement {
         bannedElements.add(bannedElement);
     }
 
-    public void addBannedIpAddresses(List<IPathElement> bannedElements) {
+    public void addBannedElements(List<IPathElement> bannedElements) {
         bannedElements.addAll(bannedElements);
     }
 
@@ -52,18 +52,6 @@ public class Firewall extends ActiveElement {
         }
     }
 
-/*    @Override
-    public String toString() {
-        return "Firewall{" +
-                "\nid=" + getId() +
-                ", \nipAddress=" + getIpAddress() +
-                ", \ntimeDelay=" + getTimeDelay() +
-                ", \ncosts=" + getCosts() +
-                ", \nconnections=" + getConnections() +
-                ", \nmaxNumOfConnections=" + getMaxNumOfConnections() +
-                ", \nbannedElements=" + getBannedElements() +
-                '}';
-    }*/
     @Override
     public String toString() {
         return "Firewall{" + getId() + "}";

@@ -1,15 +1,15 @@
 package com.nc.network.pathElements.activeElements;
 
 import com.nc.network.pathElements.PathElement;
+import com.nc.routeProviders.IRouteProvider;
 import com.nc.routeProviders.RouteProvider;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 public abstract class ActiveElement extends PathElement {
     private IpAddress ipAddress;
-    private RouteProvider cachedRouteProvider;
+    private IRouteProvider cachedRouteProvider;
     private boolean hasActualRouteProvider;
     private static final long serialVersionUID = 1L;
 
@@ -33,7 +33,7 @@ public abstract class ActiveElement extends PathElement {
         this.ipAddress = ipAddress;
     }
 
-    public RouteProvider getCachedRouteProvider() {
+    public IRouteProvider getCachedRouteProvider() {
         return cachedRouteProvider;
     }
 
