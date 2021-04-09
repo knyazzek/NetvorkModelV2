@@ -30,22 +30,23 @@ public class NetworkTest {
             System.out.print("Input:");
             String str = scanner.nextLine();
             String[] command = str.split(" ");
+            CommandType commandType = CommandType.fromString(command[0]);
 
-            switch (command[0]) {
-                case ("route") :
+            if (commandType == null) {
+                System.out.println(command[0] + " is not recognized as a command.");
+                continue;
+            }
+
+            switch (commandType) {
+                case ROUTE :
                     List<IPathElement> res = route(Arrays.asList(command));
                     if (res != null)
                         System.out.println(res);
                     break;
 
-                case ("exit") :
+                case EXIT :
                     System.out.println("Exit.");
                     System.exit(0);
-                    break;
-
-                default:
-                    System.out.println(command[0] +
-                            " is not recognized as a command.");
                     break;
             }
         }
@@ -153,6 +154,7 @@ public class NetworkTest {
 
     private void loadRouteProvider(String routeProviderName, ActiveElement sender)
             throws NoSuchRouteProvider {
+
         if (sender.hasActualRouteProvider() &&
                 //TODO rewrite
                 sender.getCachedRouteProvider().getClass().getSimpleName().equals(routeProviderName)) {
