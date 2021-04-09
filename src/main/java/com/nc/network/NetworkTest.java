@@ -57,20 +57,10 @@ public class NetworkTest {
             return;
         }
 
-        FileInputStream fileInputStream = new FileInputStream("src/main/resources/save.ser");
+        FileInputStream fileInputStream =
+                new FileInputStream("src/main/resources/" + networkName + ".ser");
         ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
-
-        Map<String, Network> networks = new HashMap<>();
-        int networksCount = objectInputStream.readInt();
-
-        for (int i = 0; i < networksCount; i++) {
-            String key = (String) objectInputStream.readObject();
-            Network value = (Network) objectInputStream.readObject();
-
-            networks.put(key, value);
-        }
-
-        network = networks.get(networkName);
+        network = (Network) objectInputStream.readObject();
 
         if (network == null) {
             throw  new ClassNotFoundException();
@@ -113,6 +103,7 @@ public class NetworkTest {
             loadNetwork(netName);
         } catch (Exception e) {
             System.out.println("Failed to load network with specified name.");
+            return null;
         }
 
         //Load Sender and Recipient
