@@ -5,22 +5,20 @@ public enum RouteProviderType {
     MIN_COSTS_ROUTE_PROVIDER("MinCostsRouteProvider"),
     MIN_NODES_COUNT_ROUTE_PROVIDER("MinNodesCountRouteProvider");
 
-    private String name;
+    private String value;
 
-    RouteProviderType(String name) {
-        this.name = name;
+    private RouteProviderType(String value) {
+        this.value = value;
     }
 
-    public static RouteProviderType getEnum(String name) {
-        switch (name) {
-            case "MinTimeDelayRouteProvider":
-                return MIN_TIME_DELAY_ROUTE_PROVIDER;
-            case "MinCostsRouteProvider":
-                return MIN_COSTS_ROUTE_PROVIDER;
-            case "MinNodesCountRouteProvider":
-                return MIN_NODES_COUNT_ROUTE_PROVIDER;
-            default:
-                return null;
+    public static RouteProviderType fromString(String value) {
+        if (value != null) {
+            for (RouteProviderType rpt : RouteProviderType.values()) {
+                if (value.equalsIgnoreCase(rpt.value)) {
+                    return rpt;
+                }
+            }
         }
+        return null;
     }
 }

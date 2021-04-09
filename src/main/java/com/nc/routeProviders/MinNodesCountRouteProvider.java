@@ -12,4 +12,9 @@ public class MinNodesCountRouteProvider extends RouteProvider{
     public int valueOf(IPathElement pathElement) {
         return 1;
     }
+
+    @Override
+    public String getDescription() {
+        return "";
+    }
 }

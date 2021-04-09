@@ -9,4 +9,6 @@ import java.util.List;
 public interface IRouteProvider extends Externalizable {
     List<IPathElement> getRoute(Network net, IPathElement sender, IPathElement recipient)
             throws RouteNotFoundException;
+
+    String getDescription();
 }

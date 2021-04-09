@@ -12,4 +12,9 @@ public class MinCostsRouteProvider extends RouteProvider{
     public int valueOf(IPathElement pathElement) {
         return pathElement.getCosts();
     }
+
+    @Override
+    public String getDescription() {
+        return "";
+    }
 }

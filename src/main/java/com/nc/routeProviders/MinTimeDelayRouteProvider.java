@@ -12,4 +12,9 @@ public class MinTimeDelayRouteProvider extends RouteProvider{
     public int valueOf(IPathElement pathElement) {
         return pathElement.getTimeDelay();
     }
+
+    @Override
+    public String getDescription() {
+        return "";
+    }
 }
