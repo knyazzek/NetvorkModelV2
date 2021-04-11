@@ -8,6 +8,7 @@ import com.nc.network.pathElements.passiveElements.PassiveElement;
 import com.nc.routeProviders.IRouteProvider;
 import com.nc.routeProviders.RouteProviderFactory;
 import com.nc.routeProviders.RouteProviderType;
+import org.apache.commons.cli.*;
 import org.apache.commons.lang3.math.NumberUtils;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -29,17 +30,17 @@ public class NetworkTest {
         while (true) {
             System.out.print("Input:");
             String str = scanner.nextLine();
-            String[] command = str.split(" ");
-            CommandType commandType = CommandType.fromString(command[0]);
+            String[] commandLine = str.split(" ");
+            CommandType commandType = CommandType.fromString(commandLine[0]);
 
             if (commandType == null) {
-                System.out.println(command[0] + " is not recognized as a command.");
+                System.out.println(commandLine[0] + " is not recognized as a command.");
                 continue;
             }
 
             switch (commandType) {
                 case ROUTE :
-                    List<IPathElement> res = route(Arrays.asList(command));
+                    List<IPathElement> res = route(commandLine);
                     if (res != null)
                         System.out.println(res);
                     break;
@@ -71,33 +72,42 @@ public class NetworkTest {
     }
 
     //No one should change the network at this time
-    synchronized private List<IPathElement> route(List<String> command) {
-        List<String> commandTmp = new LinkedList<>(command);
+    private List<IPathElement> route(String[] commands) {
+        Options options = getOptions();
+        CommandLineParser parser = new DefaultParser();
+
+        String netName;
+        String routeProviderName;
+        String senderParameter;
+        String recipientParameter;
         boolean isIp = false;
         boolean isOnlyActive = false;
 
         ActiveElement sender;
         ActiveElement recipient;
 
-        if (commandTmp.contains("-ip")) {
-            isIp = true;
-            commandTmp.remove("-ip");
-        }
+        try {
+            CommandLine commandLine = parser.parse(options, commands);
 
-        if (commandTmp.contains("-a")) {
-            isOnlyActive = true;
-            commandTmp.remove("-a");
-        }
+            if (commandLine.hasOption("ip")) {
+                isIp = true;
+            }
 
-        if (commandTmp.size() != 5) {
-            System.out.println("Invalid number of parameters entered.");
+            if (commandLine.hasOption("a")) {
+                isOnlyActive = true;
+            }
+
+            String[] routeArgs = commandLine.getOptionValues("route");
+
+            netName = routeArgs[0];
+            routeProviderName = routeArgs[1];
+            senderParameter = routeArgs[2];
+            recipientParameter = routeArgs[3];
+
+        } catch (ParseException e) {
+            System.out.println("Invalid flag(s) specified.");
             return null;
         }
-
-        String netName = commandTmp.get(1);
-        String routeProviderName = commandTmp.get(2);
-        String senderParameter = commandTmp.get(3);
-        String recipientParameter = commandTmp.get(4);
 
         //Load Network
         try {
@@ -124,6 +134,34 @@ public class NetworkTest {
         }
 
         return getRoute(network, sender, recipient, isOnlyActive);
+    }
+
+    private Options getOptions() {
+        Options options = new Options();
+
+        Option routeOption = Option.builder("r")
+                .longOpt("route")
+                .required(false)
+                .numberOfArgs(4)
+                .build();
+
+        Option ipOption = Option.builder("i")
+                .longOpt("ip")
+                .required(false)
+                .hasArg(false)
+                .build();
+
+        Option onlyActiveOption = Option.builder("a")
+                .longOpt("onlyActive")
+                .required(false)
+                .hasArg(false)
+                .build();
+
+        options.addOption(routeOption)
+                .addOption(ipOption)
+                .addOption(onlyActiveOption);
+
+        return options;
     }
 
     private ActiveElement getActiveElement(boolean isIp, String pathElementParameter, Network net) {
@@ -156,8 +194,7 @@ public class NetworkTest {
             throws NoSuchRouteProvider {
 
         if (sender.hasActualRouteProvider() &&
-                //TODO rewrite
-                sender.getCachedRouteProvider().getClass().getSimpleName().equals(routeProviderName)) {
+                sender.getCachedRouteProviderName().equals(routeProviderName)) {
             System.out.println("We use a cached routing table.");
             routeProvider = sender.getCachedRouteProvider();
         } else {

@@ -89,4 +89,11 @@ public abstract class ActiveElement extends PathElement {
         ipAddress = (IpAddress)in.readObject();
         cachedRouteProvider = (RouteProvider)in.readObject();
     }
+
+    public String getCachedRouteProviderName() {
+        if (cachedRouteProvider != null) {
+            return cachedRouteProvider.getClass().getSimpleName();
+        }
+        return "";
+    }
 }

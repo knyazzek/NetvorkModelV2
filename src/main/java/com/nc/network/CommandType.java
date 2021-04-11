@@ -3,8 +3,8 @@ package com.nc.network;
 import com.nc.routeProviders.RouteProviderType;
 
 public enum CommandType {
-    ROUTE("route"),
-    EXIT("exit");
+    ROUTE("-route"),
+    EXIT("-exit");
 
     private String value;
 
