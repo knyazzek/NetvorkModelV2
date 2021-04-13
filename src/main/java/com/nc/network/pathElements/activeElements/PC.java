@@ -13,4 +13,9 @@ public class PC extends ActiveElement{
     public String toString() {
         return "PC{" + getId() + "}";
     }
+
+    @Override
+    public String getInfo() {
+        return "This is an active network device whose main task is to send and receive data.";
+    }
 }

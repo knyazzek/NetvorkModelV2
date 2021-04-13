@@ -15,11 +15,6 @@ public abstract class PassiveElement extends PathElement {
     }
 
     @Override
-    public String getInfo() {
-        return "";
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

@@ -72,7 +72,7 @@ public class NetworkTest {
     }
 
     //No one should change the network at this time
-    private List<IPathElement> route(String[] commands) {
+    private synchronized List<IPathElement> route(String[] commands) {
         Options options = getOptions();
         CommandLineParser parser = new DefaultParser();
 
@@ -117,23 +117,25 @@ public class NetworkTest {
             return null;
         }
 
-        //Load Sender and Recipient
-        sender = getActiveElement(isIp, senderParameter, network);
-        recipient = getActiveElement(isIp, recipientParameter, network);
+        synchronized (network) {
+            //Load Sender and Recipient
+            sender = getActiveElement(isIp, senderParameter, network);
+            recipient = getActiveElement(isIp, recipientParameter, network);
 
-        if (sender == null || recipient == null) {
-            return null;
+            if (sender == null || recipient == null) {
+                return null;
+            }
+
+            //LoadRouteProvider
+            try {
+                loadRouteProvider(routeProviderName, sender);
+            } catch (NoSuchRouteProvider noSuchRouteProvider) {
+                System.out.println("Route provider with specified name not found.");
+                return null;
+            }
+
+            return getRoute(network, sender, recipient, isOnlyActive);
         }
-
-        //LoadRouteProvider
-        try {
-            loadRouteProvider(routeProviderName, sender);
-        } catch (NoSuchRouteProvider noSuchRouteProvider) {
-            System.out.println("Route provider with specified name not found.");
-            return null;
-        }
-
-        return getRoute(network, sender, recipient, isOnlyActive);
     }
 
     private Options getOptions() {

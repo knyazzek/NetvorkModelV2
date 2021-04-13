@@ -15,6 +15,7 @@ public class MinNodesCountRouteProvider extends RouteProvider{
 
     @Override
     public String getDescription() {
-        return "";
+        return "MinNodesCountRouteProvider finds the route with the minimum number of nodes. " +
+                "It is based on Dijkstra's algorithm.";
     }
 }

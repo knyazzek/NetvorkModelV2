@@ -72,11 +72,6 @@ public abstract class ActiveElement extends PathElement {
     }
 
     @Override
-    public String getInfo() {
-        return "";
-    }
-
-    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeObject(ipAddress);

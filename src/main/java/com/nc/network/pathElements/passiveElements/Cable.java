@@ -22,4 +22,9 @@ public class Cable extends PassiveElement {
     public String toString() {
         return "Cable{" + getId() + "}";
     }
+
+    @Override
+    public String getInfo() {
+        return "This is a passive network element designed to connect two path elements.";
+    }
 }

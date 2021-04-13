@@ -15,6 +15,7 @@ public class MinTimeDelayRouteProvider extends RouteProvider{
 
     @Override
     public String getDescription() {
-        return "";
+        return "MinTimeDelayRouteProvider finds the optimal route in terms of time delay. " +
+                "It is based on Dijkstra's algorithm.";
     }
 }

@@ -6,4 +6,9 @@ public class Hub extends PassiveElement {
     public Hub(int timeDelay, int costs, int maxNumOfConnections) {
         super(timeDelay, costs, maxNumOfConnections);
     }
+
+    @Override
+    public String getInfo() {
+        return "This is a passive network element designed to connect two or more path elements";
+    }
 }

@@ -56,4 +56,10 @@ public class Firewall extends ActiveElement {
     public String toString() {
         return "Firewall{" + getId() + "}";
     }
+
+    @Override
+    public String getInfo() {
+        return "This is a network active device that has a configurable list of banned elements. " +
+                "It blocks the stream if the sender or receiver is in this list.";
+    }
 }

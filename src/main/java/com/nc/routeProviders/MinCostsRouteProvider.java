@@ -15,6 +15,7 @@ public class MinCostsRouteProvider extends RouteProvider{
 
     @Override
     public String getDescription() {
-        return "";
+        return "MinCostsRouteProvider finds the optimal route in terms of cost. " +
+                "It is based on Dijkstra's algorithm.";
     }
 }

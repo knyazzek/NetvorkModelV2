@@ -1,7 +1,5 @@
 package com.nc.network;
 
-import com.nc.routeProviders.RouteProviderType;
-
 public enum CommandType {
     ROUTE("-route"),
     EXIT("-exit");

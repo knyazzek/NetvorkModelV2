@@ -11,4 +11,9 @@ public class Router extends ActiveElement{
     public String toString() {
         return "Router{" + getId() + "}";
     }
+
+    @Override
+    public String getInfo() {
+        return "This is an active network device that transfers data from one subnet to another.";
+    }
 }

@@ -5,7 +5,7 @@ public enum RouteProviderType {
     MIN_COSTS_ROUTE_PROVIDER("MinCostsRouteProvider"),
     MIN_NODES_COUNT_ROUTE_PROVIDER("MinNodesCountRouteProvider");
 
-    private String value;
+    private final String value;
 
     private RouteProviderType(String value) {
         this.value = value;
