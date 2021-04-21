@@ -4,6 +4,11 @@ import com.nc.network.NetworkTest;
 import com.nc.network.ServerCommandType;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.StringUtils;
+import org.mindrot.jbcrypt.BCrypt;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.rmi.AlreadyBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
@@ -16,8 +21,7 @@ import java.util.Scanner;
 
 public class Server {
     public final String UNIQUE_BINDING_NAME = "server.routing";
-    //TODO serializable admin's data and fixed form of password storing.
-    private final Map<String, String> admins = new HashMap<>();
+    private Map<String, String> admins;
     private boolean isAuthorized;
     private final Options options;
     private final CommandLineParser parser;
@@ -30,7 +34,8 @@ public class Server {
 
     public static void main(String[] args) {
         Server server = new Server();
-        server.admins.put("admin","password");
+        server.loadAdminsData();
+
         try {
             server.start();
         } catch (RemoteException e) {
@@ -61,7 +66,7 @@ public class Server {
 
             switch (serverCommandType) {
                 case CONFIG_FIREWALL:
-                    System.out.println("CONFIG_FIREWALL");
+                    System.out.println("Firewall configuration started.");
                     configFirewall(commandLine);
                     break;
 
@@ -70,13 +75,17 @@ public class Server {
                     break;
 
                 case LOGOUT:
-                    System.out.println("Logout.");
+                    System.out.println("Logout completed.");
                     logout();
                     break;
 
                 case SHUT_DOWN_SERVER:
+                    saveAdminsData();
                     System.out.println("Shut down server");
                     System.exit(1);
+                    break;
+                case REGISTRATION:
+                    adminRegistration(commandLine);
                     break;
             }
         }
@@ -108,6 +117,7 @@ public class Server {
 
             server.changeBannedList(netName, firewallId, bannedElementId, isDelete);
             server.refreshAllCachedRouteProvidersOf(netName);
+            System.out.println("Firewall configuration completed successfully.");
 
         } catch (ParseException e) {
             System.out.println("Incorrect data for command \"" + args[0] + "\".");
@@ -127,8 +137,8 @@ public class Server {
             String loginName = loginArgs[0];
             String password = loginArgs[1];
 
-            if (admins.containsKey(loginName) && admins.get(loginName).equals(password)) {
-                System.out.println("Correct login data entered.");
+            if (admins.containsKey(loginName) && BCrypt.checkpw(password, admins.get(loginName))) {
+                System.out.println("Login completed.");
                 isAuthorized = true;
             } else {
                 System.out.println("Incorrect login or password entered.");
@@ -161,6 +171,12 @@ public class Server {
                 .numberOfArgs(2)
                 .build();
 
+        Option registrationOption = Option.builder("r")
+                .longOpt("registration")
+                .required(false)
+                .numberOfArgs(2)
+                .build();
+
         Option deleteBannedElementOption = Option.builder("d")
                 .longOpt("del")
                 .required(false)
@@ -169,13 +185,80 @@ public class Server {
 
         options.addOption(configFirewallOption)
                 .addOption(loginOption)
-                .addOption(deleteBannedElementOption);
+                .addOption(deleteBannedElementOption)
+                .addOption(registrationOption);
 
         return options;
     }
 
-    //TODO add admin
-    public void addAdmin() {
+    public void adminRegistration(String[] args) {
+        if (isAuthorized) {
+            try {
+                CommandLine commandLine = parser.parse(options, args);
+                String[] registrationArgs = commandLine.getOptionValues("registration");
 
+                String login = registrationArgs[0];
+                String password = registrationArgs[1];
+
+                if (admins.containsKey(login)) {
+                    System.out.println("Specified login is already exist.");
+                    return;
+                }
+
+                if (password.length() < 6) {
+                    System.out.println("The password must be at least 6 characters long.");
+                    return;
+                }
+
+                String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+                admins.put(login, hashedPassword);
+                System.out.println("The new administrator was successfully added.");
+
+            } catch (ParseException e) {
+                System.out.println("Failed to analyze the entered data");
+            }
+        } else {
+            System.out.println("You can only register with another admin.");
+        }
+    }
+
+    public void saveAdminsData() {
+        try {
+            FileOutputStream fos = new FileOutputStream("src/main/resources/adminsData.ser");
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(fos);
+
+            objectOutputStream.writeInt(admins.size());
+
+            for (Map.Entry<String, String> admin : admins.entrySet()) {
+                objectOutputStream.writeObject(admin.getKey());
+                objectOutputStream.writeObject(admin.getValue());
+            }
+
+            objectOutputStream.close();
+        }catch (Exception exception) {
+            System.out.println("Failed to save admin's data.");
+        }
+    }
+
+    public void loadAdminsData() {
+        try {
+            FileInputStream fileInputStream =
+                    new FileInputStream("src/main/resources/adminsData.ser");
+            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+
+            admins = new HashMap<>();
+            int adminsCount = objectInputStream.readInt();
+
+            for (int i = 0; i < adminsCount; i++) {
+                String key = (String) objectInputStream.readObject();
+                String value = (String) objectInputStream.readObject();
+                admins.put(key, value);
+            }
+
+            objectInputStream.close();
+            System.out.println("Admin data uploaded successfully");
+        } catch (Exception e) {
+            System.out.println("Failed to load admin data.");
+        }
     }
 }
