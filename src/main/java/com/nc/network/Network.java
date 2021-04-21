@@ -91,6 +91,8 @@ public class Network implements Externalizable {
     }
 
     public void refreshAllCachedRouteProviders() {
+        System.out.println("Refresh all cached route providers");
+
         for (IPathElement pathElement : pathElements.values()) {
             if (pathElement instanceof ActiveElement) {
                 ((ActiveElement) pathElement).setHasActualRouteProvider(false);

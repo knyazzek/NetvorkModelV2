@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class Firewall extends ActiveElement {
@@ -25,12 +24,16 @@ public class Firewall extends ActiveElement {
         return new HashSet<>(bannedElements);
     }
 
+    //TODO make returned type is boolean
     public void addBannedElement(IPathElement bannedElement) {
         bannedElements.add(bannedElement);
     }
 
-    public void addBannedElements(List<IPathElement> bannedElements) {
-        bannedElements.addAll(bannedElements);
+    public boolean removeBannedElement(IPathElement bannedElement) {
+        if (bannedElements.remove(bannedElement)) {
+            return true;
+        }
+        return false;
     }
 
     @Override

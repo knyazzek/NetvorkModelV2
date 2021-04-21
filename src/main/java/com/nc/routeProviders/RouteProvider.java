@@ -5,14 +5,12 @@ import com.nc.exceptions.RouteNotFoundException;
 import com.nc.network.Network;
 import com.nc.network.pathElements.IPathElement;
 import com.nc.network.pathElements.activeElements.Firewall;
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+
+import java.io.*;
 import java.util.*;
 
 public abstract class RouteProvider implements IRouteProvider {
-    private Map<Integer, RoutingTableRow> routingTable;
+    private final Map<Integer, RoutingTableRow> routingTable;
     private Comparator<IPathElement> comparator;
     private Queue<IPathElement> availableMoves;
     private IPathElement sender;
@@ -130,7 +128,7 @@ public abstract class RouteProvider implements IRouteProvider {
         return false;
     }
 
-    private class RoutingTableRow implements Externalizable {
+    private class RoutingTableRow implements Serializable {
         private boolean visited;
         private int metric;
         private IPathElement previous;
@@ -170,7 +168,7 @@ public abstract class RouteProvider implements IRouteProvider {
             this.previous = previous;
         }
 
-        @Override
+/*        @Override
         public void writeExternal(ObjectOutput out) throws IOException {
             out.writeBoolean(isVisited());
             out.writeInt(metric);
@@ -182,7 +180,7 @@ public abstract class RouteProvider implements IRouteProvider {
             this.visited = in.readBoolean();
             this.metric = in.readInt();
             this.previous = (IPathElement) in.readObject();
-        }
+        }*/
 
         @Override
         public String toString() {

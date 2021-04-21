@@ -13,7 +13,7 @@ public abstract class PathElement implements IPathElement{
     private int timeDelay;
     private int costs;
     private int maxNumOfConnections;
-    private Set<IPathElement> connections;
+    private final Set<IPathElement> connections;
     private Network network;
     private static final long serialVersionUID = 11L;
 

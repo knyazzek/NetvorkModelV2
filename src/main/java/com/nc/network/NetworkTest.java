@@ -3,6 +3,7 @@ package com.nc.network;
 import com.nc.exceptions.*;
 import com.nc.network.pathElements.IPathElement;
 import com.nc.network.pathElements.activeElements.ActiveElement;
+import com.nc.network.pathElements.activeElements.Firewall;
 import com.nc.network.pathElements.activeElements.IpAddress;
 import com.nc.network.pathElements.passiveElements.PassiveElement;
 import com.nc.routeProviders.IRouteProvider;
@@ -15,64 +16,35 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.*;
 
-public class NetworkTest {
-    private Network network;
-    private RouteProviderFactory routeProviderFactory;
-    private IRouteProvider routeProvider;
+public class NetworkTest implements INetworkTest{
+    private Map<String, Network> networks;
+    private final RouteProviderFactory routeProviderFactory;
+    //private IRouteProvider routeProvider;
 
     public NetworkTest() {
         routeProviderFactory = new RouteProviderFactory();
-    }
-
-    public void start() {
-        Scanner scanner = new Scanner(System.in);
-
-        while (true) {
-            System.out.print("Input:");
-            String str = scanner.nextLine();
-            String[] commandLine = str.split(" ");
-            CommandType commandType = CommandType.fromString(commandLine[0]);
-
-            if (commandType == null) {
-                System.out.println(commandLine[0] + " is not recognized as a command.");
-                continue;
-            }
-
-            switch (commandType) {
-                case ROUTE :
-                    List<IPathElement> res = route(commandLine);
-                    if (res != null)
-                        System.out.println(res);
-                    break;
-
-                case EXIT :
-                    System.out.println("Exit.");
-                    System.exit(0);
-                    break;
-            }
-        }
+        networks = new HashMap<>();
     }
 
     private void loadNetwork(String networkName) throws IOException, ClassNotFoundException {
-
-        if (network != null && network.getName().equals(networkName)) {
+        if (networks.containsKey(networkName)) {
             return;
         }
 
         FileInputStream fileInputStream =
                 new FileInputStream("src/main/resources/" + networkName + ".ser");
         ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
-        network = (Network) objectInputStream.readObject();
+        Network network = (Network) objectInputStream.readObject();
 
         if (network == null) {
             throw  new ClassNotFoundException();
         }
 
+        networks.put(networkName, network);
         objectInputStream.close();
     }
 
-    //No one should change the network at this time
-    private synchronized List<IPathElement> route(String[] commands) {
+    public synchronized List<IPathElement> route(String[] commands) {
         Options options = getOptions();
         CommandLineParser parser = new DefaultParser();
 
@@ -83,6 +55,8 @@ public class NetworkTest {
         boolean isIp = false;
         boolean isOnlyActive = false;
 
+        Network net;
+        IRouteProvider routeProvider;
         ActiveElement sender;
         ActiveElement recipient;
 
@@ -112,30 +86,29 @@ public class NetworkTest {
         //Load Network
         try {
             loadNetwork(netName);
+            net = networks.get(netName);
         } catch (Exception e) {
             System.out.println("Failed to load network with specified name.");
             return null;
         }
 
-        synchronized (network) {
-            //Load Sender and Recipient
-            sender = getActiveElement(isIp, senderParameter, network);
-            recipient = getActiveElement(isIp, recipientParameter, network);
+        //Load Sender and Recipient
+        sender = getActiveElement(isIp, senderParameter, net);
+        recipient = getActiveElement(isIp, recipientParameter, net);
 
-            if (sender == null || recipient == null) {
-                return null;
-            }
-
-            //LoadRouteProvider
-            try {
-                loadRouteProvider(routeProviderName, sender);
-            } catch (NoSuchRouteProvider noSuchRouteProvider) {
-                System.out.println("Route provider with specified name not found.");
-                return null;
-            }
-
-            return getRoute(network, sender, recipient, isOnlyActive);
+        if (sender == null || recipient == null) {
+            return null;
         }
+
+        //LoadRouteProvider
+        try {
+            routeProvider = getRouteProvider(routeProviderName, sender);
+        } catch (NoSuchRouteProvider noSuchRouteProvider) {
+            System.out.println("Route provider with specified name not found.");
+            return null;
+        }
+
+        return getRoute(net, routeProvider, sender, recipient, isOnlyActive);
     }
 
     private Options getOptions() {
@@ -192,13 +165,13 @@ public class NetworkTest {
         return activeElement;
     }
 
-    private void loadRouteProvider(String routeProviderName, ActiveElement sender)
+    private IRouteProvider getRouteProvider(String routeProviderName, ActiveElement sender)
             throws NoSuchRouteProvider {
 
         if (sender.hasActualRouteProvider() &&
                 sender.getCachedRouteProviderName().equals(routeProviderName)) {
             System.out.println("We use a cached routing table.");
-            routeProvider = sender.getCachedRouteProvider();
+            return sender.getCachedRouteProvider();
         } else {
             RouteProviderType rpt = RouteProviderType.fromString(routeProviderName);
 
@@ -206,11 +179,12 @@ public class NetworkTest {
                 throw new NoSuchRouteProvider("The route provider with name \""
                         + routeProviderName + "\" was not found");
             }
-            routeProvider = routeProviderFactory.createRouteProvider(rpt);
+            return routeProviderFactory.createRouteProvider(rpt);
         }
     }
 
     private List<IPathElement> getRoute(Network net,
+                                        IRouteProvider routeProvider,
                                         IPathElement sender,
                                         IPathElement recipient,
                                         boolean isOnlyActive) {
@@ -230,5 +204,35 @@ public class NetworkTest {
             }
         }
         return route;
+    }
+
+    public void changeBannedList(String netName,
+                                 Integer firewallId,
+                                 Integer bannedElementId,
+                                 boolean isDelete) {
+        try {
+            loadNetwork(netName);
+        } catch (Exception e) {
+            System.out.println("Changing failed.");
+        }
+
+        Network net = networks.get(netName);
+        ActiveElement activeElement = net.getPathElementById(firewallId);
+        IPathElement bannedElement = net.getPathElementById(bannedElementId);
+
+        if (activeElement instanceof Firewall) {
+            Firewall firewall = (Firewall) activeElement;
+
+            if (isDelete) {
+                firewall.removeBannedElement(bannedElement);
+            } else {
+                firewall.addBannedElement(bannedElement);
+            }
+        }
+        System.out.println("Changing successful");
+    }
+
+    public void refreshAllCachedRouteProvidersOf(String netName) {
+        networks.get(netName).refreshAllCachedRouteProviders();
     }
 }
