@@ -35,7 +35,6 @@ public abstract class RouteProvider implements IRouteProvider {
             return null;
         }
         if (!isSetUp) {
-            System.out.println("Configuring the routing table.");
             initRoutingTable(net);
             setUpRoutingTable(sender, recipient);
             isSetUp = true;

@@ -9,7 +9,7 @@ import java.util.Set;
 
 public class Firewall extends ActiveElement {
     private static final long serialVersionUID = 5L;
-    private Set<IPathElement> bannedElements;
+    private final Set<IPathElement> bannedElements;
 
     public Firewall() {
         bannedElements = new HashSet<>();
@@ -24,7 +24,6 @@ public class Firewall extends ActiveElement {
         return new HashSet<>(bannedElements);
     }
 
-    //TODO make returned type is boolean
     public void addBannedElement(IPathElement bannedElement) {
         bannedElements.add(bannedElement);
     }

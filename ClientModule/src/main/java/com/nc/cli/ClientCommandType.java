@@ -1,6 +1,9 @@
-package com.nc;
+package com.nc.cli;
 
 public enum ClientCommandType {
+    LOGIN("-l", "-login"),
+    LOGOUT("-o", "-logout"),
+    REGISTRATION("-r", "-registration"),
     ROUTE("-r","-route"),
     EXIT("-e","-exit");
 

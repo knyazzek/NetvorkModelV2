@@ -1,38 +1,53 @@
 package com.nc.network;
 
+import com.nc.IClient;
 import com.nc.INetworkTest;
-import com.nc.routeProviders.IRouteProvider;
+import com.nc.users.Role;
+import com.nc.users.User;
 import com.nc.exceptions.InvalidIpAddressException;
-import com.nc.exceptions.NoSuchRouteProvider;
 import com.nc.exceptions.RouteNotFoundException;
+import com.nc.exceptions.login.IncorrectLoginDataException;
+import com.nc.exceptions.login.LoginIsAlreadyInUseException;
+import com.nc.exceptions.logout.LogoutFromNotLoggedInUserException;
+import com.nc.exceptions.registration.LoginIsAlreadyExistException;
+import com.nc.exceptions.route.*;
 import com.nc.network.pathElements.IPathElement;
 import com.nc.network.pathElements.activeElements.ActiveElement;
 import com.nc.network.pathElements.activeElements.Firewall;
 import com.nc.network.pathElements.activeElements.IpAddress;
 import com.nc.network.pathElements.passiveElements.PassiveElement;
+import com.nc.routeProviders.IRouteProvider;
 import com.nc.routeProviders.RouteProviderFactory;
 import com.nc.routeProviders.RouteProviderType;
-import org.apache.commons.cli.*;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.*;
+import java.rmi.RemoteException;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 public class NetworkTest implements INetworkTest {
-    private Map<String, Network> networks;
+    private final Map<String, Network> networks;
     private final RouteProviderFactory routeProviderFactory;
+    public final Map<String, User> users;
+    private final ThreadPoolExecutor threadPoolExecutor;
 
     public NetworkTest() {
-        routeProviderFactory = new RouteProviderFactory();
-        networks = new HashMap<>();
+        this.routeProviderFactory = new RouteProviderFactory();
+        this.networks = new HashMap<>();
+        this.threadPoolExecutor = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+                300L, TimeUnit.SECONDS,
+                new SynchronousQueue<>());
+        this.users = new ConcurrentHashMap<>();;
+        loadUsersData();
     }
 
     private void loadNetwork(String networkName) throws IOException, ClassNotFoundException {
         if (networks.containsKey(networkName)) {
             return;
         }
-
         FileInputStream fileInputStream =
                 new FileInputStream("src/main/resources/" + networkName + ".ser");
         ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
@@ -41,75 +56,80 @@ public class NetworkTest implements INetworkTest {
         if (network == null) {
             throw  new ClassNotFoundException();
         }
-
         networks.put(networkName, network);
         objectInputStream.close();
     }
 
-    public synchronized List<String> route(String[] commands) {
-        Options options = getOptions();
-        CommandLineParser parser = new DefaultParser();
+    @Override
+    public void route(String net,
+                      String routeProvider,
+                      String sender,
+                      String recipient,
+                      boolean isIp,
+                      boolean isOnlyActive,
+                      IClient client)
+            throws RemoteException {
+        Supplier<List<String>> routeTask = () -> {
+            try {
+                return getRouteTask(net,
+                        routeProvider,
+                        sender,
+                        recipient,
+                        isIp,
+                        isOnlyActive);
+            } catch (Exception ex) {
+                throw new CompletionException(ex);
+            }
+        };
 
-        String netName;
-        String routeProviderName;
-        String senderParameter;
-        String recipientParameter;
-        boolean isIp = false;
-        boolean isOnlyActive = false;
+        BiConsumer<List<String>, Throwable> handler = (r, e) -> {
+            try {
+                if (r != null) {
+                    client.printResponse(r);
+                } else if (e != null) {
+                    client.printResponse(e.getCause());
+                }
+            } catch (RemoteException ex) {
+                throw new CompletionException(ex);
+            }
+        };
 
+        try {
+            CompletableFuture.supplyAsync(routeTask, threadPoolExecutor)
+                    .whenComplete(handler);
+        } catch (CompletionException ex) {
+            throw (RemoteException) ex.getCause();
+        }
+    }
+
+    private List<String> getRouteTask(String netName,
+                                     String routeProviderName,
+                                     String senderParameter,
+                                     String recipientParameter,
+                                     boolean isIp,
+                                     boolean isOnlyActive)
+            throws ElementNotFoundException,
+            NoSuchRouteProviderException,
+            NoSuchNetworkException {
         Network net;
         IRouteProvider routeProvider;
         ActiveElement sender;
         ActiveElement recipient;
-
-        try {
-            CommandLine commandLine = parser.parse(options, commands);
-
-            if (commandLine.hasOption("ip")) {
-                isIp = true;
-            }
-
-            if (commandLine.hasOption("a")) {
-                isOnlyActive = true;
-            }
-
-            String[] routeArgs = commandLine.getOptionValues("route");
-
-            netName = routeArgs[0];
-            routeProviderName = routeArgs[1];
-            senderParameter = routeArgs[2];
-            recipientParameter = routeArgs[3];
-
-        } catch (ParseException e) {
-            System.out.println("Invalid flag(s) specified.");
-            return null;
-        }
 
         //Load Network
         try {
             loadNetwork(netName);
             net = networks.get(netName);
         } catch (Exception e) {
-            System.out.println("Failed to load network with specified name.");
-            return null;
+            throw new NoSuchNetworkException();
         }
 
         //Load Sender and Recipient
         sender = getActiveElement(isIp, senderParameter, net);
         recipient = getActiveElement(isIp, recipientParameter, net);
 
-        if (sender == null || recipient == null) {
-            return null;
-        }
-
         //LoadRouteProvider
-        try {
-            routeProvider = getRouteProvider(routeProviderName, sender);
-        } catch (NoSuchRouteProvider noSuchRouteProvider) {
-            System.out.println("Route provider with specified name not found.");
-            return null;
-        }
-
+        routeProvider = getRouteProvider(routeProviderName, sender);
         List<IPathElement> route =
                 getRoute(net, routeProvider, sender, recipient, isOnlyActive);
 
@@ -125,72 +145,44 @@ public class NetworkTest implements INetworkTest {
         return res;
     }
 
-    private Options getOptions() {
-        Options options = new Options();
-
-        Option routeOption = Option.builder("r")
-                .longOpt("route")
-                .required(false)
-                .numberOfArgs(4)
-                .build();
-
-        Option ipOption = Option.builder("i")
-                .longOpt("ip")
-                .required(false)
-                .hasArg(false)
-                .build();
-
-        Option onlyActiveOption = Option.builder("a")
-                .longOpt("onlyActive")
-                .required(false)
-                .hasArg(false)
-                .build();
-
-        options.addOption(routeOption)
-                .addOption(ipOption)
-                .addOption(onlyActiveOption);
-
-        return options;
-    }
-
-    private ActiveElement getActiveElement(boolean isIp, String pathElementParameter, Network net) {
+    private ActiveElement getActiveElement( boolean isIp,
+                                            String pathElementParameter,
+                                            Network net)
+            throws ElementNotFoundException {
         ActiveElement activeElement;
 
         if (isIp) {
             try {
                 activeElement = net.getPathElementByIp(new IpAddress(pathElementParameter));
             } catch (InvalidIpAddressException e) {
-                System.out.println(pathElementParameter + " is invalid Ip Address");
-                return null;
+                throw new ElementNotFoundException();
             }
         } else {
             if (!NumberUtils.isCreatable(pathElementParameter)){
-                System.out.println(pathElementParameter + " is invalid Id");
-                return null;
+                throw new ElementNotFoundException();
             }
             int pathElementId = Integer.parseInt(pathElementParameter);
             activeElement = net.getPathElementById(pathElementId);
         }
 
         if (activeElement == null)
-            System.out.println("The element with specified parameters \"" + pathElementParameter
+            throw new ElementNotFoundException("The element with specified id \""
+                    + pathElementParameter
                     + "\" doesn't exist or is not an active element.");
 
         return activeElement;
     }
 
     private IRouteProvider getRouteProvider(String routeProviderName, ActiveElement sender)
-            throws NoSuchRouteProvider {
-
-        if (sender.hasActualRouteProvider() &&
-                sender.getCachedRouteProviderName().equals(routeProviderName)) {
-            System.out.println("We use a cached routing table.");
+            throws NoSuchRouteProviderException {
+        if (sender.hasActualRouteProvider()
+                && sender.getCachedRouteProviderName().equals(routeProviderName)) {
             return sender.getCachedRouteProvider();
         } else {
             RouteProviderType rpt = RouteProviderType.fromString(routeProviderName);
 
             if (rpt == null) {
-                throw new NoSuchRouteProvider("The route provider with name \""
+                throw new NoSuchRouteProviderException("The route provider with name \""
                         + routeProviderName + "\" was not found");
             }
             return routeProviderFactory.createRouteProvider(rpt);
@@ -246,7 +238,138 @@ public class NetworkTest implements INetworkTest {
         System.out.println("Changing successful");
     }
 
+    @Override
+    public String login(String login, String password) throws LoginIsAlreadyInUseException,
+                                                            IncorrectLoginDataException {
+            try {
+                synchronized (users.get(login)) {
+                    if (users.get(login).isActive()) {
+                        throw new LoginIsAlreadyInUseException();
+                    }
+
+                    //Checking for password equivalence.
+                    if (users.get(login).isPasswordEqualsTo(password)) {
+                        users.get(login).setActive(true);
+                        return login;
+                    } else {
+                        throw new IncorrectLoginDataException();
+                    }
+                }
+            } catch (NullPointerException ex) {
+                throw new IncorrectLoginDataException();
+            }
+    }
+
+    @Override
+    public void logout(String login) throws LogoutFromNotLoggedInUserException {
+        User user = users.get(login);
+
+        if (user != null && user.isActive()) {
+            user.setActive(false);
+        } else {
+            throw new LogoutFromNotLoggedInUserException();
+        }
+    }
+
     public void refreshAllCachedRouteProvidersOf(String netName) {
         networks.get(netName).refreshAllCachedRouteProviders();
+    }
+
+    public void configFirewall(String netName,
+                               String firewallIdStr,
+                               String bannedElementIdStr,
+                               String loggedAdminName,
+                               boolean isDelete) {
+        User admin = users.get(loggedAdminName);
+
+        if (admin == null) {
+            System.out.println("You should authorize to config firewall.");
+            return;
+        }
+
+        if (!admin.getRoles().contains(Role.ADMIN)) {
+            System.out.println("You must log in under an account that has the role of " +
+                    "an administrator to configure the firewall");
+            return;
+        }
+
+        if (!StringUtils.isNumeric(firewallIdStr)
+                || !StringUtils.isNumeric(bannedElementIdStr)) {
+            System.out.println("The element Ids must be numbers");
+            return;
+        }
+
+        Integer firewallId = Integer.parseInt(firewallIdStr);
+        Integer bannedElementId = Integer.parseInt(bannedElementIdStr);
+
+        changeBannedList(netName, firewallId, bannedElementId, isDelete);
+        refreshAllCachedRouteProvidersOf(netName);
+        System.out.println("Firewall configuration completed successfully.");
+    }
+
+    public void saveUsersData() {
+        try {
+            FileOutputStream fos = new FileOutputStream("src/main/resources/usersData.ser");
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(fos);
+
+            objectOutputStream.writeInt(users.size());
+
+            for (Map.Entry<String, User> admin : users.entrySet()) {
+                objectOutputStream.writeObject(admin.getKey());
+                objectOutputStream.writeObject(admin.getValue());
+            }
+
+            objectOutputStream.close();
+        } catch (Exception exception) {
+            System.out.println("Failed to save users's data.");
+        }
+    }
+
+    private void setUpLoginData() {
+        try {
+            FileOutputStream fileInputStream =
+                    new FileOutputStream("src/main/resources/usersData.ser");
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileInputStream);
+            registration("admin", "password");
+            objectOutputStream.writeInt(users.size());
+            objectOutputStream.writeObject("admin");
+            objectOutputStream.writeObject(users.get("admin"));
+
+            fileInputStream.close();
+        } catch (Throwable throwable) {
+            throw new RuntimeException(throwable);
+        }
+
+    }
+
+    private void loadUsersData() {
+        try {
+            FileInputStream fileInputStream =
+                    new FileInputStream("src/main/resources/usersData.ser");
+            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+
+            int adminsCount = objectInputStream.readInt();
+
+            for (int i = 0; i < adminsCount; i++) {
+                String key = (String) objectInputStream.readObject();
+                User value = (User) objectInputStream.readObject();
+                users.put(key, value);
+            }
+
+            objectInputStream.close();
+            System.out.println("Users data uploaded successfully");
+        } catch (Exception e) {
+            System.out.println("Failed to load users data.");
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    @Override
+    public void registration(String login, String password) throws LoginIsAlreadyExistException {
+        if (users.containsKey(login)) {
+            throw new LoginIsAlreadyExistException();
+        }
+        users.put(login, new User(login, password, Role.CLIENT));
     }
 }

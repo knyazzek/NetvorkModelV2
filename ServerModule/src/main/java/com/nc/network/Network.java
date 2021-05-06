@@ -3,19 +3,17 @@ package com.nc.network;
 import com.nc.network.pathElements.IPathElement;
 import com.nc.network.pathElements.activeElements.ActiveElement;
 import com.nc.network.pathElements.activeElements.IpAddress;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class Network implements Externalizable {
     private static final long serialVersionUID = 10L;
     private String name;
-    private Map<Integer, IPathElement> pathElements;
+    private final Map<Integer, IPathElement> pathElements;
 
     public Network() {
         pathElements = new HashMap<>();
@@ -58,12 +56,6 @@ public class Network implements Externalizable {
         pathElement.setNetwork(this);
     }
 
-    public void addPathElements(List<IPathElement> pathElements) {
-        for (IPathElement pathElement : pathElements) {
-            addPathElement(pathElement);
-        }
-    }
-
     public void setName(String name) {
         this.name = name;
     }
@@ -99,10 +91,6 @@ public class Network implements Externalizable {
                 ((ActiveElement) pathElement).setHasActualRouteProvider(false);
             }
         }
-    }
-
-    public String getName() {
-        return name;
     }
 
     @Override
