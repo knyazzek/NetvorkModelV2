@@ -26,6 +26,7 @@ public class Firewall extends ActiveElement {
 
     public void addBannedElement(IPathElement bannedElement) {
         bannedElements.add(bannedElement);
+        System.out.println(bannedElements);
     }
 
     public boolean removeBannedElement(IPathElement bannedElement) {

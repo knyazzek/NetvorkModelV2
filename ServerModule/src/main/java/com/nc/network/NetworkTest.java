@@ -2,6 +2,7 @@ package com.nc.network;
 
 import com.nc.IClient;
 import com.nc.INetworkTest;
+import com.nc.exceptions.InvalidDeviceTypeException;
 import com.nc.users.Role;
 import com.nc.users.User;
 import com.nc.exceptions.InvalidIpAddressException;
@@ -215,7 +216,8 @@ public class NetworkTest implements INetworkTest {
     public void changeBannedList(String netName,
                                  Integer firewallId,
                                  Integer bannedElementId,
-                                 boolean isDelete) {
+                                 boolean isDelete)
+            throws ElementNotFoundException, InvalidDeviceTypeException, NoSuchNetworkException {
         try {
             loadNetwork(netName);
         } catch (Exception e) {
@@ -223,8 +225,16 @@ public class NetworkTest implements INetworkTest {
         }
 
         Network net = networks.get(netName);
+        if (net == null) {
+            throw new NoSuchNetworkException();
+        }
+
         ActiveElement activeElement = net.getPathElementById(firewallId);
         IPathElement bannedElement = net.getPathElementById(bannedElementId);
+
+        if (activeElement == null || bannedElement == null) {
+            throw new ElementNotFoundException();
+        }
 
         if (activeElement instanceof Firewall) {
             Firewall firewall = (Firewall) activeElement;
@@ -234,26 +244,28 @@ public class NetworkTest implements INetworkTest {
             } else {
                 firewall.addBannedElement(bannedElement);
             }
+        } else {
+            throw new InvalidDeviceTypeException();
         }
         System.out.println("Changing successful");
     }
 
     @Override
-    public String login(String login, String password) throws LoginIsAlreadyInUseException,
-                                                            IncorrectLoginDataException {
+    public String login(String login, String password)
+            throws LoginIsAlreadyInUseException, IncorrectLoginDataException {
             try {
-                synchronized (users.get(login)) {
-                    if (users.get(login).isActive()) {
-                        throw new LoginIsAlreadyInUseException();
-                    }
+                if (users.get(login).isActive()) {
+                    throw new LoginIsAlreadyInUseException();
+                } else {
+                    users.get(login).setActive(true);
+                }
 
-                    //Checking for password equivalence.
-                    if (users.get(login).isPasswordEqualsTo(password)) {
-                        users.get(login).setActive(true);
-                        return login;
-                    } else {
-                        throw new IncorrectLoginDataException();
-                    }
+                //Checking for password equivalence.
+                if (users.get(login).isPasswordEqualsTo(password)) {
+                    return login;
+                } else {
+                    users.get(login).setActive(false);
+                    throw new IncorrectLoginDataException();
                 }
             } catch (NullPointerException ex) {
                 throw new IncorrectLoginDataException();
@@ -262,6 +274,7 @@ public class NetworkTest implements INetworkTest {
 
     @Override
     public void logout(String login) throws LogoutFromNotLoggedInUserException {
+        if (login == null) throw new LogoutFromNotLoggedInUserException();
         User user = users.get(login);
 
         if (user != null && user.isActive()) {
@@ -280,12 +293,14 @@ public class NetworkTest implements INetworkTest {
                                String bannedElementIdStr,
                                String loggedAdminName,
                                boolean isDelete) {
-        User admin = users.get(loggedAdminName);
 
-        if (admin == null) {
+
+        if (loggedAdminName == null || users.get(loggedAdminName) == null) {
             System.out.println("You should authorize to config firewall.");
             return;
         }
+
+        User admin = users.get(loggedAdminName);
 
         if (!admin.getRoles().contains(Role.ADMIN)) {
             System.out.println("You must log in under an account that has the role of " +
@@ -299,10 +314,22 @@ public class NetworkTest implements INetworkTest {
             return;
         }
 
+        System.out.println("Firewall configuration started.");
+
         Integer firewallId = Integer.parseInt(firewallIdStr);
         Integer bannedElementId = Integer.parseInt(bannedElementIdStr);
-
-        changeBannedList(netName, firewallId, bannedElementId, isDelete);
+        try {
+            changeBannedList(netName, firewallId, bannedElementId, isDelete);
+        } catch (ElementNotFoundException ex) {
+            System.out.println("Element(s) with specified Id(s) not found");
+            return;
+        } catch (InvalidDeviceTypeException ex) {
+            System.out.println("Specified device isn't a firewall");
+            return;
+        } catch (NoSuchNetworkException ex) {
+            System.out.println("network with specified name not found");
+            return;
+        }
         refreshAllCachedRouteProvidersOf(netName);
         System.out.println("Firewall configuration completed successfully.");
     }

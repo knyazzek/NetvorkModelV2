@@ -35,8 +35,6 @@ public class ServerCommandLineParser {
     }
 
     public void firewallConfigParse(String[] args, String loggedAdminName) {
-        System.out.println("Firewall configuration started.");
-
         try {
             CommandLine commandLine = parser.parse(options, args);
             String[] configFirewallArgs = commandLine.getOptionValues("fconfig");
